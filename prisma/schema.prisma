@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  createdAt DateTime  @default(now())
+  courses   Course[]
+}
+
+model Course {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  createdAt   DateTime  @default(now())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  lessons     Lesson[]
+}
+
+model Lesson {
+  id          String     @id @default(cuid())
+  title       String
+  content     String
+  order       Int        // Ordering of lessons in a course
+  isCompleted Boolean    @default(false) // Track completion per lesson
+  courseId    String
+  course      Course     @relation(fields: [courseId], references: [id])
+  quizzes     Quiz[]
+}
+
+model Quiz {
+  id        String         @id @default(cuid())
+  title     String
+  lessonId  String
+  lesson    Lesson         @relation(fields: [lessonId], references: [id])
+  questions QuizQuestion[]
+}
+
+model QuizQuestion {
+  id         String           @id @default(cuid())
+  quizId     String
+  quiz       Quiz             @relation(fields: [quizId], references: [id])
+  question   String
+  type       QuestionType
+  options    String[]         // For MCQ or Multiple Choice → empty array for Descriptive
+  correctAnswers String[]    // Single answer for MCQ, multiple for Multiple Choice, null for Descriptive
+}
+
+enum QuestionType {
+  MCQ
+  MULTIPLE_SELECT
+  DESCRIPTIVE
+}
