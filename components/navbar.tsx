@@ -15,9 +15,9 @@ export function Navbar () {
 
   const handleGetStarted = () => {
     if (isSignedIn) {
-      router.push("/prompt")
+      router.push('/prompt')
     } else {
-      router.push("/sign-in")
+      router.push('/sign-in')
     }
   }
 
@@ -54,8 +54,12 @@ export function Navbar () {
 
           <div className='hidden md:flex items-center space-x-4'>
             <ThemeToggle />
-            {isSignedIn ? <UserButton /> : <SignInButton />}
-            <Button onClick={handleGetStarted} >Get Started</Button>
+            {isSignedIn ? (
+              <UserButton />
+            ) : (
+              <Button onClick={handleGetStarted}>Sign In</Button>
+            )}
+            <Button onClick={handleGetStarted}>Get Started</Button>
           </div>
 
           {/* Mobile Menu Button */}

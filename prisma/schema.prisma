@@ -15,54 +15,124 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
+  id        String   @id
+  email     String   @unique
   name      String?
-  createdAt DateTime  @default(now())
+  createdAt DateTime @default(now())
   courses   Course[]
 }
 
 model Course {
-  id          String    @id @default(cuid())
+  id          String       @id @default(cuid())
   title       String
   description String
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime     @default(now())
   userId      String
-  user        User      @relation(fields: [userId], references: [id])
+  user        User         @relation(fields: [userId], references: [id])
   lessons     Lesson[]
+  status      CourseStatus @default(IN_PROGRESS)
+  progress    Int          @default(0)
+  grade       Grade        @default(NOT_GRADED)
+  completedAt DateTime?
+
+  summary   Summary?
+  keyPoints KeyPoint[]
+  analytics Analytics?
 }
 
 model Lesson {
-  id          String     @id @default(cuid())
+  id          String  @id @default(cuid())
   title       String
+  description String
   content     String
-  order       Int        // Ordering of lessons in a course
-  isCompleted Boolean    @default(false) // Track completion per lesson
+  order       Int
+  duration    String
+  isCompleted Boolean @default(false)
   courseId    String
-  course      Course     @relation(fields: [courseId], references: [id])
-  quizzes     Quiz[]
+  course      Course  @relation(fields: [courseId], references: [id])
+
+  quizz Quiz?
 }
 
 model Quiz {
-  id        String         @id @default(cuid())
-  title     String
-  lessonId  String
-  lesson    Lesson         @relation(fields: [lessonId], references: [id])
-  questions QuizQuestion[]
+  id           String         @id @default(cuid())
+  title        String
+  lessonId     String         @unique
+  duration     String
+  totalMarks   Int
+  passingMarks Int
+  isCompleted  Boolean        @default(false)
+  lesson       Lesson         @relation(fields: [lessonId], references: [id])
+  questions    QuizQuestion[]
 }
 
 model QuizQuestion {
-  id         String           @id @default(cuid())
-  quizId     String
-  quiz       Quiz             @relation(fields: [quizId], references: [id])
-  question   String
-  type       QuestionType
-  options    String[]         // For MCQ or Multiple Choice → empty array for Descriptive
-  correctAnswers String[]    // Single answer for MCQ, multiple for Multiple Choice, null for Descriptive
+  id             String       @id @default(cuid())
+  quizId         String
+  number         Int
+  quiz           Quiz         @relation(fields: [quizId], references: [id])
+  question       String
+  type           QuestionType
+  options        String[]
+  marks          Int
+  correctAnswers String[]
+  explanation    String
+  rubric         String[]
+}
+
+model Summary {
+  id             String   @id @default(cuid())
+  courseId       String   @unique
+  course         Course   @relation(fields: [courseId], references: [id])
+  overview       String
+  whatYouLearned String[]
+  skillsGained   String[]
+  nextSteps      String[]
+}
+
+model KeyPoint {
+  id       String   @id @default(cuid())
+  courseId String
+  course   Course   @relation(fields: [courseId], references: [id])
+  category String
+  points   String[]
+}
+
+model Analytics {
+  id       String @id @default(cuid())
+  courseId String @unique
+  course   Course @relation(fields: [courseId], references: [id])
+
+  timeSpentTotal   Float
+  timeSpentLessons Float
+  timeSpentQuizzes Float
+
+  averageScore  Float
+  totalQuizzes  Int
+  passedQuizzes Int
+  grade         Grade
+
+  lessonsCompleted Int
+  quizzesCompleted Int
+  totalLessons     Int
 }
 
 enum QuestionType {
   MCQ
   MULTIPLE_SELECT
   DESCRIPTIVE
+  TRUE_FALSE
+}
+
+enum CourseStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum Grade {
+  EXCELLENT
+  GOOD
+  AVERAGE
+  NEEDS_IMPROVEMENT
+  NOT_GRADED
 }

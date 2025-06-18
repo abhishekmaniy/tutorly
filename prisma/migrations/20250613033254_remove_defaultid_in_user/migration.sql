@@ -1,0 +1,11 @@
+-- CreateEnum
+CREATE TYPE "CourseStatus" AS ENUM ('IN_PROGRESS', 'COMPLETED');
+
+-- CreateEnum
+CREATE TYPE "Grade" AS ENUM ('EXCELLENT', 'GOOD', 'AVERAGE', 'NEEDS_IMPROVEMENT', 'NOT_GRADED');
+
+-- AlterTable
+ALTER TABLE "Course" ADD COLUMN     "completedAt" TIMESTAMP(3),
+ADD COLUMN     "grade" "Grade" NOT NULL DEFAULT 'NOT_GRADED',
+ADD COLUMN     "progress" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "status" "CourseStatus" NOT NULL DEFAULT 'IN_PROGRESS';
