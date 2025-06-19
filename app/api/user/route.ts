@@ -56,6 +56,7 @@ export async function GET (req: NextRequest) {
         courses: {
           include: {
             lessons: {
+              orderBy: { order: 'asc' },
               include: {
                 quizz: {
                   include: {
@@ -72,7 +73,6 @@ export async function GET (req: NextRequest) {
       }
     })
 
-    console.log('user ', user?.courses[0].lessons[0].quizz)
 
     return NextResponse.json(user, { status: 200 })
   } catch (error) {

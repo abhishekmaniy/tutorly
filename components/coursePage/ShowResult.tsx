@@ -18,8 +18,8 @@ const ShowResult = ({
   quiz: Quiz
   timeSpent: number
   answers: Record<string, any>
-  resetQuiz:any
-  onComplete:any
+  resetQuiz: any
+  onComplete: any
 }) => {
   const getGrade = (score: number, total: number) => {
     const percentage = (score / total) * 100
@@ -31,8 +31,8 @@ const ShowResult = ({
     return { grade: 'Needs Improvement', color: 'text-red-600' }
   }
 
-  const gradeInfo = getGrade(score, quiz?.totalMarks!)
-  const percentage = Math.round((score / quiz?.totalMarks!) * 100)
+  const gradeInfo = getGrade(quiz.gainedMarks, quiz?.totalMarks!)
+  const percentage = Math.round((quiz.gainedMarks / quiz?.totalMarks!) * 100)
 
   return (
     <div className='space-y-6'>
@@ -49,7 +49,7 @@ const ShowResult = ({
         <CardContent className='space-y-4'>
           <div className='text-center'>
             <div className='text-4xl font-bold mb-2'>
-              {score}/{quiz?.totalMarks!}
+              {quiz.gainedMarks}/{quiz?.totalMarks!}
             </div>
             <div className='text-2xl mb-2'>
               <span className={gradeInfo.color}>{gradeInfo.grade}</span>
@@ -66,9 +66,13 @@ const ShowResult = ({
             <div>
               <p className='text-sm text-muted-foreground'>Status</p>
               <Badge
-                variant={score >= quiz.passingMarks ? 'default' : 'destructive'}
+                variant={
+                  quiz.gainedMarks >= quiz.passingMarks
+                    ? 'default'
+                    : 'destructive'
+                }
               >
-                {score >= quiz.passingMarks ? 'Passed' : 'Failed'}
+                {quiz.gainedMarks >= quiz.passingMarks ? 'Passed' : 'Failed'}
               </Badge>
             </div>
           </div>
@@ -82,51 +86,7 @@ const ShowResult = ({
         <CardContent>
           <div className='space-y-4'>
             {quiz?.questions.map((question, index) => {
-              const answer = answers[question.id]
-              let isCorrect = false
-
-              switch (question.type) {
-                case 'MCQ': {
-                  // answer is index → map to option text
-                  const selectedOption =
-                    typeof answer === 'number' ? question.options[answer] : ''
-                  isCorrect =
-                    selectedOption?.toLowerCase() ===
-                    question.correctAnswers?.[0]?.toLowerCase()
-                  break
-                }
-
-                case 'TRUE_FALSE': {
-                  // answer is boolean
-                  isCorrect =
-                    answer.toString().toUpperCase() ===
-                    question.correctAnswers?.[0]
-                  break
-                }
-
-                case 'MULTIPLE_SELECT': {
-                  if (
-                    Array.isArray(answer) &&
-                    Array.isArray(question.correctAnswers)
-                  ) {
-                    const selectedOptions = answer.map(
-                      index => question.options[index]
-                    )
-                    const sortedUser = [...selectedOptions].sort()
-                    const sortedCorrect = [...question.correctAnswers].sort()
-                    isCorrect =
-                      JSON.stringify(sortedUser) ===
-                      JSON.stringify(sortedCorrect)
-                  }
-                  break
-                }
-
-                case 'DESCRIPTIVE': {
-                  isCorrect =
-                    typeof answer === 'string' && answer.trim().length > 50
-                  break
-                }
-              }
+              let isCorrect = question.isCorrect
 
               return (
                 <div

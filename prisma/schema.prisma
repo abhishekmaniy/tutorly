@@ -61,6 +61,9 @@ model Quiz {
   duration     String
   totalMarks   Int
   passingMarks Int
+  gainedMarks  Int
+  timeTaken    Int
+  status       QuizStatus?
   isCompleted  Boolean        @default(false)
   lesson       Lesson         @relation(fields: [lessonId], references: [id])
   questions    QuizQuestion[]
@@ -75,6 +78,7 @@ model QuizQuestion {
   type           QuestionType
   options        String[]
   marks          Int
+  isCorrect      Boolean      @default(false)
   correctAnswers String[]
   explanation    String
   rubric         String[]
@@ -135,4 +139,9 @@ enum Grade {
   AVERAGE
   NEEDS_IMPROVEMENT
   NOT_GRADED
+}
+
+enum QuizStatus {
+  PASS
+  FAIL
 }

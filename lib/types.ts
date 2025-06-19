@@ -27,28 +27,30 @@ export type Course = {
 export type Lesson = {
   id: string
   title: string
-  description: string     
+  description: string
   content: string
   order: number
   duration: string
   isCompleted: boolean
   courseId: string
   course?: Course
-  quizz: Quiz | null      
+  quizz: Quiz | null
 }
 
 export type Quiz = {
   id: string
   title: string
   duration: string
-  totalMarks: number       
-  passingMarks: number     
+  totalMarks: number
+  passingMarks: number
   isCompleted: boolean
   lessonId: string
+  timeTaken: number
   lesson?: Lesson
+  status: QuizStatus
+  gainedMarks: number
   questions: QuizQuestion[]
 }
-
 
 export type QuizQuestion = {
   id: string
@@ -57,13 +59,13 @@ export type QuizQuestion = {
   quiz?: Quiz
   question: string
   type: QuestionType
+  isCorrect: boolean
   options: string[]
-  marks: number            
+  marks: number
   correctAnswers: string[]
-  explanation: string      
-  rubric: string[]         
+  explanation: string
+  rubric: string[]
 }
-
 
 export type Summary = {
   id: string
@@ -105,7 +107,11 @@ export type Analytics = {
   totalLessons: number
 }
 
-export type QuestionType = 'MCQ' | 'MULTIPLE_SELECT' | 'DESCRIPTIVE' | 'TRUE_FALSE'
+export type QuestionType =
+  | 'MCQ'
+  | 'MULTIPLE_SELECT'
+  | 'DESCRIPTIVE'
+  | 'TRUE_FALSE'
 
 export type CourseStatus = 'IN_PROGRESS' | 'COMPLETED'
 
@@ -115,3 +121,5 @@ export type Grade =
   | 'AVERAGE'
   | 'NEEDS_IMPROVEMENT'
   | 'NOT_GRADED'
+
+export type QuizStatus = 'PASS' | 'FAIL'

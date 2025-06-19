@@ -91,6 +91,8 @@ const Sidebar = ({
     )
   }
 
+  console.log("Quiz" , completedQuizzes)
+
   return (
     <div className='lg:col-span-1'>
       <Card className='sticky top-6'>
@@ -189,7 +191,7 @@ const Sidebar = ({
                   className='w-full justify-start h-auto p-3'
                   onClick={() => {
                     setSelectedQuiz(lesson.id)
-                    setSelectedLesson(null) // ✅ Fix here
+                    setSelectedLesson(null) 
                     setShowSummary(false)
                     setShowKeyPoints(false)
                     setShowAnalytics(false)
@@ -203,7 +205,7 @@ const Sidebar = ({
                     )}
                     <div className='text-left flex-1 min-w-0'>
                       <p className='text-sm font-medium truncate'>
-                        Lesson {lesson.id} Quiz
+                        Lesson {lesson.order} Quiz
                       </p>
                       <p className='text-xs text-muted-foreground'>
                         5 questions

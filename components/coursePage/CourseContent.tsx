@@ -1,46 +1,37 @@
-import { Course, Lesson, Quiz } from '@/lib/types'
+import { Course, Lesson } from '@/lib/types'
 import {
-  ArrowRight,
-  Award,
-  BarChart as BarchartGraph,
   BookOpen,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
-  Clock,
-  Target,
-  Trophy
+  Clock
 } from 'lucide-react'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
-} from 'recharts'
-import { Badge } from '../ui/badge'
-import { Button } from '../ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
-import { QuizComponent } from './quiz-component'
 import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
-import rehypeHighlight from 'rehype-highlight'
+import remarkGfm from 'remark-gfm'
+import { Badge } from '../ui/badge'
+import { Button } from '../ui/button'
+import { Card, CardContent } from '../ui/card'
+import { QuizComponent } from './quiz-component'
 
 import 'highlight.js/styles/github-dark.css'
-import CourseComplete from './CourseComplete'
-import CourseSummary from './CourseSummary'
-import CourseKeyPoint from './CourseKeyPoint'
+import { ComponentPropsWithoutRef } from 'react'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import CourseAnalytics from './CourseAnalytics'
-import { useEffect, useRef } from 'react'
+import CourseComplete from './CourseComplete'
+import CourseKeyPoint from './CourseKeyPoint'
+import CourseSummary from './CourseSummary'
+import rehypeMathjax from 'rehype-mathjax'
+import { ComponentProps } from 'react'
+
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+
+interface CodeProps extends ComponentProps<'code'> {
+  inline?: boolean
+  className?: string
+  children: React.ReactNode
+}
 
 const CourseContent = ({
   course,
@@ -78,38 +69,13 @@ const CourseContent = ({
   showAnalytics: boolean
   showSummary: boolean
 }) => {
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
-
-  console.log(completedLessons)
-
-  useEffect(() => {
-    const container = scrollContainerRef.current
-    console.log('Scroll container:', container)
-
-    if (!container) return
-
-    const handleScroll = () => {
-      console.log('Scroll fired')
-      const { scrollTop, scrollHeight, clientHeight } = container
-      console.log({ scrollTop, scrollHeight, clientHeight })
-
-      if (
-        scrollTop + clientHeight >= scrollHeight - 100 &&
-        selectedLesson &&
-        !completedLessons.includes(selectedLesson.id)
-      ) {
-        handleLessonComplete(selectedLesson.id)
-      }
-    }
-
-    container.addEventListener('scroll', handleScroll)
-    return () => container.removeEventListener('scroll', handleScroll)
-  }, [selectedLesson, completedLessons])
+  console.log(course.lessons)
+  console.log(selectedLesson)
 
   return (
     <div className='lg:col-span-3'>
       <Card className='h-full flex flex-col'>
-        <div ref={scrollContainerRef} className='p-8 flex-1 overflow-y-auto'>
+        <div className='p-8 flex-1 overflow-y-auto'>
           <CardContent className='p-8 flex-1 overflow-y-auto '>
             {selectedLesson?.order! >= 0 && (
               <div className='prose prose-slate dark:prose-invert max-w-none'>
@@ -140,7 +106,51 @@ const CourseContent = ({
                 </div>
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeHighlight]}
+                  rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeMathjax]}
+                  components={{
+                    code: (({
+                      inline,
+                      className,
+                      children,
+                      ...props
+                    }: CodeProps) => {
+                      const match = /language-(\w+)/.exec(className || '')
+                      if (inline || !match) {
+                        return (
+                          <code
+                            className={className}
+                            style={{
+                              background: '#1e1e1e',
+                              color: '#dcdcdc',
+                              padding: '0.2rem 0.4rem',
+                              borderRadius: '0.3rem',
+                              fontSize: '0.9rem'
+                            }}
+                            {...props}
+                          >
+                            {children}
+                          </code>
+                        )
+                      }
+
+                      return (
+                        <div style={{ margin: '1rem 0' }}>
+                          <SyntaxHighlighter
+                            language={match[1]}
+                            style={vscDarkPlus}
+                            customStyle={{
+                              padding: '1rem',
+                              borderRadius: '0.5rem',
+                              fontSize: '0.9rem'
+                            }}
+                            showLineNumbers
+                          >
+                            {String(children).replace(/\n$/, '')}
+                          </SyntaxHighlighter>
+                        </div>
+                      )
+                    }) as any
+                  }}
                 >
                   {selectedLesson?.content}
                 </ReactMarkdown>
@@ -148,11 +158,15 @@ const CourseContent = ({
                   <Button
                     variant='outline'
                     onClick={() => {
-                      if (selectedLesson?.order! > 1) {
-                        setSelectedLesson(selectedLesson?.order! - 1)
+                      if (selectedLesson && selectedLesson.order > 0) {
+                        const prevLesson = course.lessons.find(
+                          l => l.order === selectedLesson.order - 1
+                        )
+                        console.log(prevLesson)
+                        if (prevLesson) setSelectedLesson(prevLesson)
                       }
                     }}
-                    disabled={selectedLesson?.order === 1}
+                    disabled={selectedLesson?.order === 0}
                   >
                     <ChevronLeft className='mr-2 h-4 w-4' />
                     Previous Lesson
@@ -160,11 +174,28 @@ const CourseContent = ({
 
                   <Button
                     onClick={() => {
-                      if (selectedLesson?.order! < course.lessons.length) {
-                        setSelectedLesson(selectedLesson?.order! + 1)
+                      setSelectedLesson(null)
+                      setSelectedQuiz(selectedLesson?.id)
+                    }}
+                  >
+                    Give Quiz
+                  </Button>
+
+                  <Button
+                    onClick={() => {
+                      if (
+                        selectedLesson &&
+                        selectedLesson.order < course.lessons.length
+                      ) {
+                        const nextLesson = course.lessons.find(
+                          l => l.order === selectedLesson.order + 1
+                        )
+                        if (nextLesson) setSelectedLesson(nextLesson)
                       }
                     }}
-                    disabled={selectedLesson?.order === course.lessons.length}
+                    disabled={
+                      selectedLesson?.order! + 1 === course.lessons.length
+                    }
                   >
                     Next Lesson
                     <ChevronRight className='ml-2 h-4 w-4' />
@@ -216,7 +247,7 @@ const CourseContent = ({
                     Select a lesson from the sidebar to get started with your
                     learning journey.
                   </p>
-                  <Button onClick={() => setSelectedLesson(1)}>
+                  <Button onClick={() => setSelectedLesson(course.lessons[0])}>
                     Start First Lesson
                   </Button>
                 </div>

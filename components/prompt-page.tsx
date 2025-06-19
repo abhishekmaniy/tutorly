@@ -247,20 +247,37 @@ export function PromptPage () {
   const router = useRouter()
   const { getToken, userId } = useAuth()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const { courses, setCourses } = useStore()
+  const { courses, setUser } = useStore()
 
   useEffect(() => {
-    const getCourses = async () => {
-      if (!userId) {
-        return
-      }
+    const controller = new AbortController()
 
-      const response = await axios.get(`/api/course?id=${userId}`)
-      const data = response.data
-      setCourses(data)
+    const getCourses = async () => {
+      if (!userId) return
+
+      try {
+        const token = await getToken()
+        console.log(token)
+
+        const response = await axios.get(`/api/user`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal
+        })
+        setUser(response.data)
+      } catch (error: any) {
+        if (axios.isCancel(error)) {
+          console.log('Request canceled:', error.message)
+        } else {
+          console.error('Error fetching user:', error)
+        }
+      }
     }
 
     getCourses()
+
+    return () => {
+      controller.abort() // 🛑 Cancel request on unmount
+    }
   }, [userId])
 
   const handleGenerateCourse = async () => {

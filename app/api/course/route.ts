@@ -13,14 +13,15 @@ export async function GET (req: NextRequest) {
   }
 
   try {
-    const course = await db.course.findMany({
-      where: { userId: id },
-      include:{
-        lessons:{
-          include:{
-            quizz:{
-              include:{
-                questions:true
+    const course = await db.course.findUnique({
+      where: { id },
+      include: {
+        lessons: {
+          orderBy: { order: 'asc' },
+          include: {
+            quizz: {
+              include: {
+                questions: true
               }
             }
           }

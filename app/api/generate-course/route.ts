@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!
 
-async function generateValidJson(
+async function generateValidJson (
   prompt: string,
   model: any,
   retries = 3
@@ -27,14 +27,18 @@ async function generateValidJson(
       return JSON.parse(text)
     } catch (err) {
       console.warn(`JSON parse error on attempt ${i + 1}:`, err)
-      if (i === retries - 1) throw new Error(`Failed to generate valid JSON after ${retries} attempts.`)
+      if (i === retries - 1)
+        throw new Error(
+          `Failed to generate valid JSON after ${retries} attempts.`
+        )
     }
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST (req: NextRequest) {
   const { userId } = getAuth(req)
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!userId)
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { prompt } = await req.json()
   const ai = new GoogleGenerativeAI(GEMINI_API_KEY)
@@ -71,13 +75,46 @@ Topic: ${prompt}
       const lessonJson = await generateValidJson(
         `
 You are an expert lesson content creator.
-Generate detailed content for: "${lessonTitle}".
-Return ONLY valid JSON.
+
+Generate detailed, well-structured lesson content for the topic: "${lessonTitle}".
+
+## ✅ Important instructions:
+
+- **Return ONLY a valid JSON object** in the specified structure.
+- **NO images, NO links, NO image URLs.** Text content only.
+- Structure all lesson content using **valid markdown**:
+  - **Headings**: #, ##, ### as appropriate
+  - **Bold**: Use **double asterisks** for emphasis
+  - **Inline Code**: Use \`backticks\` for inline code references
+  - **Code Blocks**: Use triple backticks \`\`\` with a language specifier (e.g., \`\`\`js, \`\`\`python, \`\`\`html)
+  
+Example:
+
+\`\`\`js
+const button = document.getElementById("btn");
+button.addEventListener("click", () => alert("Clicked!"));
+\`\`\`
+
+- **Mathematical Expressions** (if needed):
+  - Inline: \`$E = mc^2$\`
+  - Block: 
+\`\`\`
+$$
+a^2 + b^2 = c^2
+$$
+\`\`\`
+
+- Avoid writing things like "Example HTML:" → Just provide the content using **proper markdown**.
+
+## 📦 Output Format (Strict):
+
 {
   "title": "${lessonTitle}",
-  "description": "Detailed lesson description...",
-  "content": "Lesson content with **BOLD** headings."
+  "description": "Detailed lesson description with proper markdown formatting.",
+  "content": "Full lesson content formatted using markdown. Use **headings**, \`inline code\`, code blocks with language, **bold text**, lists, and math expressions as explained above. DO NOT include any links or image URLs."
 }
+
+Return ONLY the JSON. Do NOT include explanations or comments outside the JSON.
 `,
         model
       )
@@ -86,32 +123,40 @@ Return ONLY valid JSON.
       const quizJson = await generateValidJson(
         `
 You are an expert quiz generator.
-Generate a high-quality quiz for the topic "${lessonTitle}" in valid JSON format:
+Generate a **high-quality** quiz for the topic **"${lessonTitle}"** in **valid JSON format** matching this structure:
+
 {
   "title": "${lessonTitle} Quiz",
   "duration": "e.g., '10 minutes'",
   "totalMarks": 50,
   "passingMarks": 30,
+  "status": "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED", // use appropriate starting status
   "questions": [
     {
+      "number": 1, // question number starting from 1
       "question": "Write a clear, concise question related to '${lessonTitle}'.",
-      "type": "MCQ" | "MULTIPLE_SELECT" | "DESCRIPTIVE" | "TRUE_FALSE" ,
-      "options": ["Option1", "Option2"],
+      "type": "MCQ" | "MULTIPLE_SELECT" | "DESCRIPTIVE" | "TRUE_FALSE",
+      "options": ["Option1", "Option2"], // Optional for DESCRIPTIVE
       "marks": 10,
-      "number": 0, (quesion number)
-      "correctAnswers": ["Answer1", "Answer2"],
+      "correctAnswers": ["Answer1", "Answer2"], // For MCQ, TRUE_FALSE, MULTIPLE_SELECT
       "explanation": "Explain why this is the correct answer.",
-      "rubric": ["Point 1 for mentioning X", "Point 2 for covering Y"]
+      "rubric": ["Point 1 for mentioning X", "Point 2 for covering Y"] // Only for DESCRIPTIVE
     }
   ]
 }
+
 Guidelines:
-- At least 5 questions
-- Mixed types
-- 'totalMarks' = sum of 'marks' of all questions
+- Generate at least **5 questions**
+- Mix of types: MCQ, MULTIPLE_SELECT, TRUE_FALSE, and at least 1 DESCRIPTIVE
+- 'totalMarks' = **sum of 'marks'** of all questions
 - 'passingMarks' ≈ 60% of totalMarks
-Return ONLY valid JSON.
-`,
+- DESCRIPTIVE questions must include a meaningful **rubric**
+- Make sure 'correctAnswers' corresponds accurately to 'options' (where applicable)
+- Use **number** for the question order, starting from 1
+- 'status' field should be provided (default is usually 'NOT_STARTED')
+
+Return **ONLY VALID JSON**. No markdown, no explanations outside JSON.
+  `,
         model
       )
 
@@ -198,11 +243,13 @@ Course Title: "${prompt}"
                 totalMarks: lessonData.totalMarks,
                 passingMarks: lessonData.passingMarks,
                 isCompleted: false,
+                gainedMarks: 0,
+                timeTaken: 0,
                 questions: {
                   create: lessonData.quizzes.map((q: any) => ({
                     question: q.question,
                     type: q.type,
-                    number:q.number,
+                    number: q.number,
                     options: q.options || [],
                     marks: q.marks || 5,
                     correctAnswers: q.correctAnswers || [],
@@ -254,6 +301,9 @@ Course Title: "${prompt}"
     return NextResponse.json({ id: course.id, course })
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ error: 'Failed to generate course' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to generate course' },
+      { status: 500 }
+    )
   }
 }

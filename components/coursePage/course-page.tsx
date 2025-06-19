@@ -9,7 +9,7 @@ import { useAuth } from '@clerk/nextjs'
 import axios from 'axios'
 import { BookOpen, History } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import CourseContent from './CourseContent'
 import Sidebar from './Sidebar'
 import { Skeleton } from '../ui/skeleton'
@@ -23,13 +23,14 @@ export function CoursePage ({ courseId }: CoursePageProps) {
   const [selectedQuiz, setSelectedQuiz] = useState<string | null>(null)
   const [completedLessons, setCompletedLessons] = useState<string[]>([])
   const [completedQuizzes, setCompletedQuizzes] = useState<string[]>([])
-  const [lessonsOpen, setLessonsOpen] = useState(true)
-  const [quizzesOpen, setQuizzesOpen] = useState(true)
+  const [lessonsOpen, setLessonsOpen] = useState(false)
+  const [quizzesOpen, setQuizzesOpen] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
   const [showKeyPoints, setShowKeyPoints] = useState(false)
   const [courseCompleted, setCourseCompleted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const mainRef = useRef<HTMLDivElement>(null)
 
   const { getToken } = useAuth()
   const { addCourse, user, setUser } = useStore()
@@ -54,6 +55,25 @@ export function CoursePage ({ courseId }: CoursePageProps) {
     }),
     [completedLessons.length, completedQuizzes.length, course]
   )
+
+  useEffect(() => {
+    const container = mainRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      if (
+        scrollTop + clientHeight >= scrollHeight - 100 &&
+        selectedLesson &&
+        !completedLessons.includes(selectedLesson.id)
+      ) {
+        handleLessonComplete(selectedLesson.id)
+      }
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [selectedLesson, completedLessons])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,6 +115,8 @@ export function CoursePage ({ courseId }: CoursePageProps) {
     }
   }, [course])
 
+  console.log('Lessons', course?.lessons)
+
   const checkCourseCompletion = () => {
     return (
       completedLessons.length === (course?.lessons.length || 0) &&
@@ -112,15 +134,26 @@ export function CoursePage ({ courseId }: CoursePageProps) {
     return totalItems ? Math.round((completedItems / totalItems) * 100) : 0
   }, [course, completedLessons.length, completedQuizzes.length])
 
-  const handleLessonComplete = (lessonId: string) => {
+  const handleLessonComplete = async (lessonId: string) => {
     if (!completedLessons.includes(lessonId)) {
       setCompletedLessons(prev => [...prev, lessonId])
+      await axios.post('/api/complete-lesson', { lessonId, courseId })
     }
   }
 
-  const handleQuizComplete = (quizId: string) => {
-    if (!completedQuizzes.includes(quizId)) {
-      setCompletedQuizzes(prev => [...prev, quizId])
+  console.log('COmpeltedQuiz', completedQuizzes)
+
+  const handleQuizComplete = (lessonId: string) => {
+    if (course) {
+      const lesson = course.lessons.filter(lesson => lesson.id === lessonId)[0]
+
+      if (
+        lesson &&
+        lesson.quizz &&
+        !completedQuizzes.includes(lesson.quizz.id)
+      ) {
+        setCompletedQuizzes(prev => [...prev, lesson.quizz!.id])
+      }
     }
   }
 
@@ -167,9 +200,27 @@ export function CoursePage ({ courseId }: CoursePageProps) {
         <aside className='lg:col-span-1 sticky top-16 h-[calc(100vh-64px)] overflow-y-auto border-r p-4'>
           {isLoading ? (
             <div className='space-y-4'>
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className='h-20 w-full rounded-lg' />
-              ))}
+              <Skeleton className='h-12 w-3/4 rounded' /> {/* Title skeleton */}
+              {/* Description line 1 */}
+              <Skeleton className='h-10 w-full rounded' />{' '}
+              <Skeleton className='h-10 w-3/4 rounded' />{' '}
+              {/* Description line 2 */}
+              <Skeleton className='h-8 w-full rounded' />{' '}
+              {/* Description line 3 */}
+              <div className='space-y-2'>
+                <Skeleton className='h-6 w-3/4 rounded' />{' '}
+                <Skeleton className='h-6 w-3/4 rounded' />{' '}
+                <Skeleton className='h-6 w-3/4 rounded' />{' '}
+                <Skeleton className='h-6 w-3/4 rounded' />{' '}
+                {/* Progress bar skeleton */}
+              </div>
+              <Skeleton className='h-8 w-full rounded' />{' '}
+              <div className='space-y-2'>
+                <Skeleton className='h-6 w-3/4 rounded' />{' '}
+                <Skeleton className='h-6 w-3/4 rounded' />{' '}
+                <Skeleton className='h-6 w-3/4 rounded' />{' '}
+                <Skeleton className='h-6 w-3/4 rounded' />{' '}
+              </div>
             </div>
           ) : (
             <Sidebar
@@ -199,7 +250,10 @@ export function CoursePage ({ courseId }: CoursePageProps) {
         </aside>
 
         {/* MAIN CONTENT - Scrollable */}
-        <main className='lg:col-span-3 overflow-y-auto h-[calc(100vh-64px)] p-6'>
+        <main
+          ref={mainRef}
+          className='lg:col-span-3 overflow-y-auto h-[calc(100vh-64px)] p-6'
+        >
           {isLoading ? (
             <div className='flex flex-col items-center justify-center h-full text-center'>
               <BookOpen className='h-12 w-12 text-primary animate-pulse mb-4' />

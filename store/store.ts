@@ -11,20 +11,24 @@ interface AppState {
   reset: () => void
 }
 
-export const useStore = create<AppState>((set) => ({
+export const useStore = create<AppState>(set => ({
   user: null,
-  setUser: (user) => set({ user }),
+  setUser: user =>
+    set({
+      user,
+      courses: user?.courses || [] // <-- Sets courses from the user
+    }),
   courses: [],
-  setCourses: (courses) => set({ courses }),
-  addCourse: (course) =>
-    set((state) => ({
-      courses: [...state.courses.filter((c) => c.id !== course.id), course],
+  setCourses: courses => set({ courses }),
+  addCourse: course =>
+    set(state => ({
+      courses: [...state.courses.filter(c => c.id !== course.id), course]
     })),
-  updateCourse: (updatedCourse) =>
-    set((state) => ({
-      courses: state.courses.map((c) =>
+  updateCourse: updatedCourse =>
+    set(state => ({
+      courses: state.courses.map(c =>
         c.id === updatedCourse.id ? updatedCourse : c
-      ),
+      )
     })),
-  reset: () => set({ user: null, courses: [] }),
+  reset: () => set({ user: null, courses: [] })
 }))
