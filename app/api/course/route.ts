@@ -23,7 +23,8 @@ export async function GET (req: NextRequest) {
               include: {
                 questions: true
               }
-            }
+            },
+            contentBlocks: true
           }
         }
       }

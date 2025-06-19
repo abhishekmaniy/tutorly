@@ -13,9 +13,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import CourseContent from './CourseContent'
 import Sidebar from './Sidebar'
 import { Skeleton } from '../ui/skeleton'
+import { motion } from 'framer-motion'
+import { Card } from '../ui/card'
 
 interface CoursePageProps {
   courseId: string
+}
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
 }
 
 export function CoursePage ({ courseId }: CoursePageProps) {
@@ -165,6 +172,12 @@ export function CoursePage ({ courseId }: CoursePageProps) {
     return lesson
   }
 
+ useEffect(() => {
+  if (mainRef.current) {
+    mainRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}, [selectedLesson, showSummary, showKeyPoints, showAnalytics])
+
   return (
     <div className='h-screen grid grid-rows-[auto_1fr] bg-background'>
       {/* Navbar */}
@@ -197,31 +210,34 @@ export function CoursePage ({ courseId }: CoursePageProps) {
       {/* Main content */}
       <div className='grid grid-cols-1 lg:grid-cols-4 h-full'>
         {/* SIDEBAR - Sticky */}
-        <aside className='lg:col-span-1 sticky top-16 h-[calc(100vh-64px)] overflow-y-auto border-r p-4'>
+        <aside className='lg:col-span-1 sticky top-16 h-[calc(100vh-64px)] overflow-y-auto border-r p-4 scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#0f0f0f]'>
           {isLoading ? (
-            <div className='space-y-4'>
-              <Skeleton className='h-12 w-3/4 rounded' /> {/* Title skeleton */}
-              {/* Description line 1 */}
-              <Skeleton className='h-10 w-full rounded' />{' '}
-              <Skeleton className='h-10 w-3/4 rounded' />{' '}
-              {/* Description line 2 */}
-              <Skeleton className='h-8 w-full rounded' />{' '}
-              {/* Description line 3 */}
-              <div className='space-y-2'>
-                <Skeleton className='h-6 w-3/4 rounded' />{' '}
-                <Skeleton className='h-6 w-3/4 rounded' />{' '}
-                <Skeleton className='h-6 w-3/4 rounded' />{' '}
-                <Skeleton className='h-6 w-3/4 rounded' />{' '}
-                {/* Progress bar skeleton */}
-              </div>
-              <Skeleton className='h-8 w-full rounded' />{' '}
-              <div className='space-y-2'>
-                <Skeleton className='h-6 w-3/4 rounded' />{' '}
-                <Skeleton className='h-6 w-3/4 rounded' />{' '}
-                <Skeleton className='h-6 w-3/4 rounded' />{' '}
-                <Skeleton className='h-6 w-3/4 rounded' />{' '}
-              </div>
-            </div>
+            <motion.div
+              className='lg:col-span-1 p-4'
+              variants={cardVariants}
+              initial='hidden'
+              animate='visible'
+            >
+              <Card className='sticky top-6 p-4 space-y-5'>
+                <Skeleton className='h-6 w-1/2' /> {/* Title */}
+                <Skeleton className='h-4 w-full' /> {/* Description */}
+                <Skeleton className='h-2 w-full' /> {/* Progress Label */}
+                <Skeleton className='h-2 w-full rounded bg-muted-foreground/20' />{' '}
+                {/* Progress Bar */}
+                <div className='space-y-2 mt-4'>
+                  <Skeleton className='h-10 w-full rounded-lg' />{' '}
+                  {/* Lessons */}
+                  <Skeleton className='h-10 w-full rounded-lg' />{' '}
+                  {/* Quizzes */}
+                  <Skeleton className='h-10 w-full rounded-lg' />{' '}
+                  {/* Summary */}
+                  <Skeleton className='h-10 w-full rounded-lg' />{' '}
+                  {/* Key Points */}
+                  <Skeleton className='h-10 w-full rounded-lg' />{' '}
+                  {/* Analytics */}
+                </div>
+              </Card>
+            </motion.div>
           ) : (
             <Sidebar
               course={course!}

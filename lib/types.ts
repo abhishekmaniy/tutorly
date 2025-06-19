@@ -28,14 +28,26 @@ export type Lesson = {
   id: string
   title: string
   description: string
-  content: string
   order: number
   duration: string
   isCompleted: boolean
   courseId: string
   course?: Course
+  contentBlocks: ContentBlock[] 
   quizz: Quiz | null
 }
+
+export type ContentBlock = {
+  id: string
+  lessonId: string
+  order: number
+  type: 'CODE' | 'MATH' | 'GRAPH' | 'TEXT'
+  text?: string | null
+  code?: string | null
+  math?: string | null
+  graph?: any | null 
+}
+
 
 export type Quiz = {
   id: string

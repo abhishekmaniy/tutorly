@@ -48,11 +48,21 @@ export async function POST (req: NextRequest) {
     // 1️⃣ Generate Syllabus
     const syllabusJson = await generateValidJson(
       `
-You are an expert educational content generator.
-Generate a detailed syllabus in valid JSON format for the following topic.
+You are an expert educational content creator.
+
+Generate a **concise syllabus** for the topic: **"${prompt}"**.
+
+## 📚 Requirements:
+- **Adjust lesson depth and count** based on **user's intent**:
+  - If the topic or query suggests **"deep"** or **"comprehensive"** learning → generate **6-8 lessons**.
+  - If the topic suggests **"introductory"**, **"overview"**, or **"quick guide"** → generate **3-4 lessons**.
+  - If user intent is **unspecified**, generate **4-6 lessons**.
+
+## 📦 JSON Format (Strict):
+Return **ONLY** a **valid JSON object** matching this structure:
 {
   "title": "Course Title",
-  "description": "Detailed description...",
+  "description": "Concise description of the course in 1-2 sentences.",
   "lessons": [
     {
       "title": "Lesson Title",
@@ -60,8 +70,13 @@ Generate a detailed syllabus in valid JSON format for the following topic.
     }
   ]
 }
-Constraints: 4-6 lessons. Return ONLY JSON.
-Topic: ${prompt}
+
+## ✅ Rules:
+- Make lesson titles **clear and focused**.
+- Lesson **duration** should reflect content depth (e.g., deeper topics → longer durations).
+- **No explanations outside JSON. No markdown. No links.**
+- **Return ONLY the JSON object.**
+
 `,
       model
     )
@@ -76,45 +91,61 @@ Topic: ${prompt}
         `
 You are an expert lesson content creator.
 
-Generate detailed, well-structured lesson content for the topic: "${lessonTitle}".
+Generate a **detailed, comprehensive, and well-structured lesson** on the topic: **"${lessonTitle}"**.  
+The lesson must cover the topic **thoroughly**, providing **all relevant information, context, explanations, and examples** necessary for a learner to fully understand the subject.
 
-## ✅ Important instructions:
+## 📦 Output Format:
+Return ONLY a **valid JSON object** matching this structure:
+{
+  "title": "${lessonTitle}",
+  "description": "Clear, concise overview of the lesson in **1-2 sentences** using proper markdown.",
+  "contentBlocks": [
+    {
+      "type": "TEXT" | "CODE" | "MATH" | "GRAPH",
+      "order": number, // Sequential, starting from 1
+      "content": string | object // Depends on type (see below)
+    }
+  ]
+}
 
-- **Return ONLY a valid JSON object** in the specified structure.
-- **NO images, NO links, NO image URLs.** Text content only.
-- Structure all lesson content using **valid markdown**:
-  - **Headings**: #, ##, ### as appropriate
-  - **Bold**: Use **double asterisks** for emphasis
-  - **Inline Code**: Use \`backticks\` for inline code references
-  - **Code Blocks**: Use triple backticks \`\`\` with a language specifier (e.g., \`\`\`js, \`\`\`python, \`\`\`html)
-  
-Example:
+## 📚 Content Block Types:
 
+1️⃣ **TEXT** → Well-written markdown explanations.
+- Use **headings** (#, ##, ###), **bold**, \`inline code\`, lists, and paragraphs.
+- **Include in-depth explanations, real-world applications, comparisons, and key takeaways.**
+
+2️⃣ **CODE** → Practical, **fully working** code snippets with syntax highlighting.
+- Must use triple backticks with language tag. Example:
 \`\`\`js
-const button = document.getElementById("btn");
-button.addEventListener("click", () => alert("Clicked!"));
+const a = 5;
 \`\`\`
+- **Explain the code in surrounding TEXT blocks.**
 
-- **Mathematical Expressions** (if needed):
-  - Inline: \`$E = mc^2$\`
-  - Block: 
+3️⃣ **MATH** → Mathematical expressions or formulas.
+- Inline: \`$E = mc^2$\`
+- Block:
 \`\`\`
 $$
 a^2 + b^2 = c^2
 $$
 \`\`\`
+- Use **if** applicable to the topic.
 
-- Avoid writing things like "Example HTML:" → Just provide the content using **proper markdown**.
-
-## 📦 Output Format (Strict):
-
+4️⃣ **GRAPH** → JSON representation of related data structures or processes (e.g., flow diagrams, network graphs).
+- Example:
 {
-  "title": "${lessonTitle}",
-  "description": "Detailed lesson description with proper markdown formatting.",
-  "content": "Full lesson content formatted using markdown. Use **headings**, \`inline code\`, code blocks with language, **bold text**, lists, and math expressions as explained above. DO NOT include any links or image URLs."
+  "nodes": [{ "id": "A" }, { "id": "B" }],
+  "edges": [{ "from": "A", "to": "B" }]
 }
 
-Return ONLY the JSON. Do NOT include explanations or comments outside the JSON.
+## ✅ Requirements:
+- Provide **5 to 7 content blocks** if the topic is complex; **4 to 5 blocks** for simpler topics.
+- Must **combine multiple types** — at least **1 TEXT** block and **1 CODE** or **MATH** block mandatory.
+- Ensure a **logical, educational progression** from introduction → explanation → examples → summary.
+- **Avoid repetition.**
+- **No links, no images, no explanations outside the JSON.**
+- **Return ONLY the JSON object.**
+
 `,
         model
       )
@@ -123,47 +154,55 @@ Return ONLY the JSON. Do NOT include explanations or comments outside the JSON.
       const quizJson = await generateValidJson(
         `
 You are an expert quiz generator.
-Generate a **high-quality** quiz for the topic **"${lessonTitle}"** in **valid JSON format** matching this structure:
 
+Generate a **high-quality, comprehensive quiz** that tests the learner's understanding of the following lesson content **in depth**.
+
+## 📘 Lesson Content (Reference for Quiz Generation):
+${JSON.stringify(lessonJson.contentBlocks)}
+
+## 📦 Output Format (Strict JSON):
+Return ONLY a **valid JSON object** matching this exact structure:
 {
-  "title": "${lessonTitle} Quiz",
+  "title": "Quiz for ${lessonTitle}",
   "duration": "e.g., '10 minutes'",
   "totalMarks": 50,
   "passingMarks": 30,
-  "status": "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED", // use appropriate starting status
+  "status": "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED",
   "questions": [
     {
-      "number": 1, // question number starting from 1
-      "question": "Write a clear, concise question related to '${lessonTitle}'.",
+      "number": 1, // Sequential starting from 1
+      "question": "Detailed, clear question based on the lesson content above.",
       "type": "MCQ" | "MULTIPLE_SELECT" | "DESCRIPTIVE" | "TRUE_FALSE",
       "options": ["Option1", "Option2"], // Optional for DESCRIPTIVE
       "marks": 10,
-      "correctAnswers": ["Answer1", "Answer2"], // For MCQ, TRUE_FALSE, MULTIPLE_SELECT
-      "explanation": "Explain why this is the correct answer.",
-      "rubric": ["Point 1 for mentioning X", "Point 2 for covering Y"] // Only for DESCRIPTIVE
+      "correctAnswers": ["Correct Answer(s)"], // Required for all except DESCRIPTIVE
+      "explanation": "Concise explanation of why this is the correct answer.",
+      "rubric": ["Point 1...", "Point 2..."] // Required for DESCRIPTIVE
     }
   ]
 }
 
-Guidelines:
-- Generate at least **5 questions**
-- Mix of types: MCQ, MULTIPLE_SELECT, TRUE_FALSE, and at least 1 DESCRIPTIVE
-- 'totalMarks' = **sum of 'marks'** of all questions
-- 'passingMarks' ≈ 60% of totalMarks
-- DESCRIPTIVE questions must include a meaningful **rubric**
-- Make sure 'correctAnswers' corresponds accurately to 'options' (where applicable)
-- Use **number** for the question order, starting from 1
-- 'status' field should be provided (default is usually 'NOT_STARTED')
+## ✅ Quiz Generation Requirements:
 
-Return **ONLY VALID JSON**. No markdown, no explanations outside JSON.
-  `,
+- **Base questions directly on the provided lesson contentBlocks, especially CODE and MATH.**
+- Include **code-based questions asking learners to predict outputs, debug, or explain code.**
+- **MATH-based content → generate problems requiring solving or explanation.**
+- **At least 5 diverse questions**:
+  - Mix of **MCQ**, **MULTIPLE_SELECT**, **TRUE_FALSE**, and at least **1 DESCRIPTIVE** with rubric.
+- Ensure **totalMarks = sum of all question marks**.
+- Set **passingMarks ≈ 60% of totalMarks**.
+- Use **number** for sequential question numbering starting from 1.
+- **Do NOT repeat content unnecessarily.**
+- **No markdown. No links. No explanations outside JSON. Return ONLY the JSON object.**
+
+`,
         model
       )
 
       lessons.push({
         title: lessonJson.title,
         description: lessonJson.description,
-        content: lessonJson.content,
+        contentBlocks: lessonJson.contentBlocks, // ✅ FIXED: this was missing
         duration: lessonDuration,
         quizDuration: quizJson.duration,
         totalMarks: quizJson.totalMarks,
@@ -192,10 +231,7 @@ Generate a concise course summary in valid JSON format:
       `
 Generate key points in valid JSON:
 [
-  {
-    "category": "Category Name",
-    "points": ["Point1", "Point2"]
-  }
+  { "category": "Category Name", "points": ["Point1", "Point2"] }
 ]
 3-4 categories, 4-6 points each. Course Title: "${prompt}"
 `,
@@ -232,10 +268,24 @@ Course Title: "${prompt}"
         lessons: {
           create: lessons.map((lessonData, idx) => ({
             title: lessonData.title,
-            content: lessonData.content,
             description: lessonData.description,
             duration: lessonData.duration,
             order: idx,
+            contentBlocks: {
+              create: lessonData.contentBlocks.map(
+                (block: any, blockIdx: number) => ({
+                  order: block.order || blockIdx + 1,
+                  type: block.type,
+                  code:
+                    block.type === 'CODE' ? String(block.content) : undefined,
+                  math:
+                    block.type === 'MATH' ? String(block.content) : undefined,
+                  graph: block.type === 'GRAPH' ? block.content : undefined,
+                  text:
+                    block.type === 'TEXT' ? String(block.content) : undefined
+                })
+              )
+            },
             quizz: {
               create: {
                 title: `${lessonData.title} Quiz`,
@@ -291,7 +341,12 @@ Course Title: "${prompt}"
         }
       },
       include: {
-        lessons: { include: { quizz: { include: { questions: true } } } },
+        lessons: {
+          include: {
+            contentBlocks: true,
+            quizz: { include: { questions: true } }
+          }
+        },
         summary: true,
         keyPoints: true,
         analytics: true

@@ -44,14 +44,35 @@ model Lesson {
   id          String  @id @default(cuid())
   title       String
   description String
-  content     String
   order       Int
   duration    String
   isCompleted Boolean @default(false)
   courseId    String
   course      Course  @relation(fields: [courseId], references: [id])
 
-  quizz Quiz?
+  contentBlocks ContentBlock[]
+  quizz         Quiz?
+}
+
+model ContentBlock {
+  id       String @id @default(cuid())
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id])
+
+  order Int 
+  type  ContentType 
+
+  code  String? 
+  math  String? 
+  graph Json? 
+  text  String? 
+}
+
+enum ContentType {
+  CODE
+  MATH
+  GRAPH
+  TEXT
 }
 
 model Quiz {

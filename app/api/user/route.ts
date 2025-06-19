@@ -62,7 +62,8 @@ export async function GET (req: NextRequest) {
                   include: {
                     questions: true
                   }
-                }
+                },
+                contentBlocks: true
               }
             },
             keyPoints: true,
@@ -72,7 +73,6 @@ export async function GET (req: NextRequest) {
         }
       }
     })
-
 
     return NextResponse.json(user, { status: 200 })
   } catch (error) {

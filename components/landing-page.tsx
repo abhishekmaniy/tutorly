@@ -21,16 +21,71 @@ import {
   ArrowRight,
   Sparkles,
   Target,
-  TrendingUp
+  TrendingUp,
+  Twitter,
+  Linkedin,
+  Github
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
+import { cubicBezier, easeOut, motion, Variants } from 'framer-motion'
+
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.15,
+      delayChildren: 0.2
+    }
+  }
+}
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.25, 0.1, 0.25, 1]
+    }
+  }
+}
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: (i = 1) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.2,
+      duration: 0.8,
+      ease: cubicBezier(0.25, 0.1, 0.25, 1)
+    }
+  })
+}
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.7,
+      ease: easeOut
+    }
+  }
+}
 
 export function LandingPage () {
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null)
   const router = useRouter()
   const { isSignedIn } = useAuth()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
 
   const handleGetStarted = () => {
     if (isSignedIn) {
@@ -161,25 +216,50 @@ export function LandingPage () {
       {/* Hero Section */}
       <section className='relative overflow-hidden py-20 lg:py-32'>
         <div className='absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-primary/5' />
+
         <div className='container relative mx-auto px-4'>
           <div className='mx-auto max-w-4xl text-center'>
-            <Badge variant='secondary' className='mb-4 animate-pulse-slow'>
-              <Sparkles className='mr-2 h-4 w-4' />
-              AI-Powered Learning Platform
-            </Badge>
-            <h1 className='mb-6 text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl'>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+            >
+              <Badge variant='secondary' className='mb-4 animate-pulse-slow'>
+                <Sparkles className='mr-2 h-4 w-4' />
+                AI-Powered Learning Platform
+              </Badge>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
+              className='mb-6 text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl'
+            >
               Learn Anything with{' '}
               <span className='bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent'>
                 AI-Generated
               </span>{' '}
               Courses
-            </h1>
-            <p className='mb-8 text-xl text-muted-foreground sm:text-2xl'>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+              className='mb-8 text-xl text-muted-foreground sm:text-2xl'
+            >
               Transform any topic into a comprehensive learning experience. Just
               describe what you want to learn, and let our AI create the perfect
               course for you.
-            </p>
-            <div className='flex flex-col gap-4 sm:flex-row sm:justify-center'>
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3, ease: 'easeOut' }}
+              className='flex flex-col gap-4 sm:flex-row sm:justify-center'
+            >
               <Button
                 size='lg'
                 className='group text-lg'
@@ -188,23 +268,46 @@ export function LandingPage () {
                 Get Started Free
                 <ArrowRight className='ml-2 h-5 w-5 transition-transform group-hover:translate-x-1' />
               </Button>
-                <Button onClick={handleDashboard} variant='outline' size='lg' className='text-lg'>
-                  View Dashboard
-                </Button>
-            </div>
+              <Button
+                onClick={handleDashboard}
+                variant='outline'
+                size='lg'
+                className='text-lg'
+              >
+                View Dashboard
+              </Button>
+            </motion.div>
           </div>
         </div>
-        <div className='absolute -bottom-32 -right-32 h-64 w-64 animate-float rounded-full bg-primary/20 blur-3xl' />
-        <div
-          className='absolute -left-32 -top-32 h-64 w-64 animate-float rounded-full bg-primary/10 blur-3xl'
-          style={{ animationDelay: '2s' }}
+
+        {/* Floating Background Effects */}
+        <motion.div
+          className='absolute -bottom-32 -right-32 h-64 w-64 rounded-full bg-primary/20 blur-3xl'
+          animate={{ y: [0, -20, 0] }}
+          transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className='absolute -left-32 -top-32 h-64 w-64 rounded-full bg-primary/10 blur-3xl'
+          animate={{ y: [0, 20, 0] }}
+          transition={{
+            repeat: Infinity,
+            duration: 6,
+            ease: 'easeInOut',
+            delay: 1
+          }}
         />
       </section>
 
       {/* Features Section */}
-      <section className='py-20'>
+      <section id="features" className='py-20'>
         <div className='container mx-auto px-4'>
-          <div className='mx-auto max-w-2xl text-center mb-16'>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true, amount: 0.2 }}
+            className='mx-auto max-w-2xl text-center mb-16'
+          >
             <h2 className='mb-4 text-3xl font-bold sm:text-4xl'>
               Powerful Features for Modern Learning
             </h2>
@@ -212,39 +315,53 @@ export function LandingPage () {
               Everything you need to create, learn, and track your educational
               journey
             </p>
-          </div>
-          <div className='grid gap-8 md:grid-cols-2 lg:grid-cols-4'>
-            {features.map((feature, index) => (
-              <Card
+          </motion.div>
+
+          <motion.div
+            className='grid gap-8 md:grid-cols-2 lg:grid-cols-4'
+            variants={containerVariants}
+            initial='hidden'
+            whileInView='visible'
+            viewport={{ once: true, amount: 0.2 }}
+          >
+            {features.map((feature: any, index: number) => (
+              <motion.div
                 key={index}
-                className='group relative overflow-hidden border-2 transition-all duration-300 hover:border-primary/50 hover:shadow-lg'
+                variants={cardVariants}
+                className='group relative overflow-hidden border-2 rounded-xl bg-background transition-all duration-300 hover:border-primary/50 hover:shadow-lg'
                 onMouseEnter={() => setHoveredFeature(index)}
                 onMouseLeave={() => setHoveredFeature(null)}
               >
-                <CardHeader>
+                <div className='p-6'>
                   <div className='mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20'>
                     <feature.icon className='h-6 w-6 text-primary' />
                   </div>
-                  <CardTitle className='text-xl'>{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className='text-base'>
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
+                  <h3 className='text-xl font-semibold mb-2'>
+                    {feature.title}
+                  </h3>
+                  <p className='text-muted-foreground'>{feature.description}</p>
+                </div>
+
                 {hoveredFeature === index && (
                   <div className='absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50' />
                 )}
-              </Card>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Screenshots Section */}
       <section className='py-20 bg-muted/30'>
         <div className='container mx-auto px-4'>
-          <div className='mx-auto max-w-2xl text-center mb-16'>
+          <motion.div
+            className='mx-auto max-w-2xl text-center mb-16'
+            initial='hidden'
+            whileInView='visible'
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeUp}
+            custom={1}
+          >
             <h2 className='mb-4 text-3xl font-bold sm:text-4xl'>
               See How It Works
             </h2>
@@ -252,31 +369,62 @@ export function LandingPage () {
               Experience the power of AI-driven learning through our intuitive
               interface
             </p>
-          </div>
-          <div className='mx-auto max-w-4xl'>
+          </motion.div>
+
+          <motion.div
+            className='mx-auto max-w-4xl'
+            initial='hidden'
+            whileInView='visible'
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeUp}
+            custom={2}
+          >
             <Card className='p-8'>
-              <div className='aspect-video rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center'>
+              <motion.div
+                className='aspect-video rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center'
+                variants={fadeUp}
+                custom={3}
+              >
                 <div className='text-center'>
-                  <div className='mx-auto mb-4 h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center'>
+                  <motion.div
+                    className='mx-auto mb-4 h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center'
+                    variants={fadeUp}
+                    custom={4}
+                  >
                     <BookOpen className='h-8 w-8 text-primary' />
-                  </div>
-                  <h3 className='text-xl font-semibold mb-2'>
+                  </motion.div>
+                  <motion.h3
+                    className='text-xl font-semibold mb-2'
+                    variants={fadeUp}
+                    custom={5}
+                  >
                     Platform Screenshots
-                  </h3>
-                  <p className='text-muted-foreground'>
+                  </motion.h3>
+                  <motion.p
+                    className='text-muted-foreground'
+                    variants={fadeUp}
+                    custom={6}
+                  >
                     Screenshots will be added here to showcase the platform
-                  </p>
+                  </motion.p>
                 </div>
-              </div>
+              </motion.div>
             </Card>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section className='py-20'>
+      <section id="pricing" className='py-20'>
         <div className='container mx-auto px-4'>
-          <div className='mx-auto max-w-2xl text-center mb-16'>
+          <motion.div
+            className='mx-auto max-w-2xl text-center mb-16'
+            initial='hidden'
+            whileInView='visible'
+            viewport={{ once: true, amount: 0.2 }}
+            variants={fadeUp}
+            custom={1}
+          >
             <h2 className='mb-4 text-3xl font-bold sm:text-4xl'>
               Choose Your Learning Plan
             </h2>
@@ -284,56 +432,76 @@ export function LandingPage () {
               Start free and upgrade as you grow. All plans include our core AI
               features.
             </p>
-          </div>
+          </motion.div>
+
           <div className='grid gap-8 lg:grid-cols-3'>
             {pricing.map((plan, index) => (
-              <Card
+              <motion.div
                 key={index}
-                className={`relative ${
-                  plan.popular ? 'border-primary shadow-lg scale-105' : ''
-                }`}
+                initial='hidden'
+                whileInView='visible'
+                viewport={{ once: true, amount: 0.2 }}
+                variants={fadeUp}
+                custom={index + 2}
               >
-                {plan.popular && (
-                  <Badge className='absolute -top-3 left-1/2 -translate-x-1/2'>
-                    Most Popular
-                  </Badge>
-                )}
-                <CardHeader className='text-center'>
-                  <CardTitle className='text-2xl'>{plan.name}</CardTitle>
-                  <div className='mt-4'>
-                    <span className='text-4xl font-bold'>{plan.price}</span>
-                    <span className='text-muted-foreground'>{plan.period}</span>
-                  </div>
-                  <CardDescription className='mt-2'>
-                    {plan.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className='space-y-3'>
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className='flex items-center'>
-                        <CheckCircle className='mr-3 h-5 w-5 text-primary' />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    className='mt-6 w-full'
-                    variant={plan.popular ? 'default' : 'outline'}
-                  >
-                    Get Started
-                  </Button>
-                </CardContent>
-              </Card>
+                <Card
+                  className={`relative ${
+                    plan.popular ? 'border-primary shadow-lg scale-105' : ''
+                  }`}
+                >
+                  {plan.popular && (
+                    <Badge className='absolute -top-3 left-1/2 -translate-x-1/2'>
+                      Most Popular
+                    </Badge>
+                  )}
+                  <CardHeader className='text-center'>
+                    <CardTitle className='text-2xl'>{plan.name}</CardTitle>
+                    <div className='mt-4'>
+                      <span className='text-4xl font-bold'>{plan.price}</span>
+                      <span className='text-muted-foreground'>
+                        {plan.period}
+                      </span>
+                    </div>
+                    <CardDescription className='mt-2'>
+                      {plan.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className='space-y-3'>
+                      {plan.features.map(
+                        (feature: string, featureIndex: number) => (
+                          <li key={featureIndex} className='flex items-center'>
+                            <CheckCircle className='mr-3 h-5 w-5 text-primary' />
+                            <span>{feature}</span>
+                          </li>
+                        )
+                      )}
+                    </ul>
+                    <Button
+                      className='mt-6 w-full'
+                      variant={plan.popular ? 'default' : 'outline'}
+                    >
+                      Get Started
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Reviews Section */}
-      <section className='py-20 bg-muted/30'>
+      <section id="reviews" className='py-20 bg-muted/30'>
         <div className='container mx-auto px-4'>
-          <div className='mx-auto max-w-2xl text-center mb-16'>
+          <motion.div
+            className='mx-auto max-w-2xl text-center mb-16'
+            initial='hidden'
+            whileInView='visible'
+            viewport={{ once: true, amount: 0.2 }}
+            variants={fadeUp}
+            custom={1}
+          >
             <h2 className='mb-4 text-3xl font-bold sm:text-4xl'>
               What Our Learners Say
             </h2>
@@ -341,84 +509,171 @@ export function LandingPage () {
               Join thousands of satisfied learners who've transformed their
               skills with Tutorly
             </p>
-          </div>
+          </motion.div>
+
           <div className='grid gap-8 md:grid-cols-3'>
             {reviews.map((review, index) => (
-              <Card
+              <motion.div
                 key={index}
-                className='group hover:shadow-lg transition-shadow'
+                initial='hidden'
+                whileInView='visible'
+                viewport={{ once: true, amount: 0.2 }}
+                variants={fadeUp}
+                custom={index + 2}
               >
-                <CardContent className='pt-6'>
-                  <div className='flex mb-4'>
-                    {[...Array(review.rating)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className='h-5 w-5 fill-yellow-400 text-yellow-400'
-                      />
-                    ))}
-                  </div>
-                  <p className='mb-4 text-muted-foreground'>
-                    "{review.content}"
-                  </p>
-                  <div className='flex items-center'>
-                    <Avatar className='mr-3'>
-                      <AvatarImage src={review.avatar || '/placeholder.svg'} />
-                      <AvatarFallback>
-                        {review.name
-                          .split(' ')
-                          .map(n => n[0])
-                          .join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className='font-semibold'>{review.name}</p>
-                      <p className='text-sm text-muted-foreground'>
-                        {review.role}
-                      </p>
+                <Card className='group hover:shadow-lg transition-shadow'>
+                  <CardContent className='pt-6'>
+                    <div className='flex mb-4'>
+                      {[...Array(review.rating)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className='h-5 w-5 fill-yellow-400 text-yellow-400'
+                        />
+                      ))}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    <p className='mb-4 text-muted-foreground'>
+                      "{review.content}"
+                    </p>
+                    <div className='flex items-center'>
+                      <Avatar className='mr-3'>
+                        <AvatarImage
+                          src={review.avatar || '/placeholder.svg'}
+                        />
+                        <AvatarFallback>
+                          {review.name
+                            .split(' ')
+                            .map((n: string) => n[0])
+                            .join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className='font-semibold'>{review.name}</p>
+                        <p className='text-sm text-muted-foreground'>
+                          {review.role}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className='py-20'>
-        <div className='container mx-auto px-4'>
-          <Card className='gradient-bg text-white'>
-            <CardContent className='p-12 text-center'>
-              <h2 className='mb-4 text-3xl font-bold sm:text-4xl'>
-                Ready to Start Learning?
-              </h2>
-              <p className='mb-8 text-xl opacity-90'>
-                Join thousands of learners and start your AI-powered education
-                journey today.
-              </p>
-              <Link href='/prompt'>
-                <Button size='lg' variant='secondary' className='text-lg'>
-                  Create Your First Course
-                  <Zap className='ml-2 h-5 w-5' />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+      <section className='py-20 relative'>
+        {/* Subtle background gradient */}
+        <div className='absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-primary/5' />
+
+        <div className='container relative mx-auto px-4'>
+          <motion.div
+            variants={fadeInUp}
+            initial='hidden'
+            whileInView='visible'
+            viewport={{ once: true, amount: 0.3 }}
+          >
+            <Card className='relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-white shadow-2xl transition hover:scale-[1.02] hover:shadow-primary/30 duration-500'>
+              {/* Optional glowing border */}
+              <div className='absolute inset-0 rounded-2xl border border-white/20 backdrop-blur-md' />
+
+              <CardContent className='relative z-10 p-12 text-center space-y-6'>
+                <h2 className='text-4xl font-extrabold tracking-tight'>
+                  Ready to Start Learning?
+                </h2>
+                <p className='text-xl text-white/90'>
+                  Join thousands of learners and start your AI-powered education
+                  journey today.
+                </p>
+                <Link href='/prompt'>
+                  <Button
+                    size='lg'
+                    variant='secondary'
+                    className='relative group text-lg px-8'
+                  >
+                    Create Your First Course
+                    <Zap className='ml-2 h-5 w-5 transition-transform group-hover:translate-x-1 group-hover:scale-110' />
+                    {/* Glowing effect on hover */}
+                    <span className='absolute inset-0 rounded-full bg-primary/30 opacity-0 group-hover:opacity-20 transition' />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className='border-t py-12'>
+      <footer className='border-t bg-background py-12 relative overflow-hidden'>
+        {/* Decorative floating blur elements */}
+        <div className='absolute -top-10 -left-20 h-48 w-48 rounded-full bg-primary/10 blur-3xl' />
+        <div className='absolute -bottom-10 -right-20 h-48 w-48 rounded-full bg-primary/10 blur-3xl' />
+
         <div className='container mx-auto px-4'>
-          <div className='flex flex-col items-center justify-between gap-4 md:flex-row'>
-            <div className='flex items-center space-x-2'>
-              <BookOpen className='h-6 w-6 text-primary' />
-              <span className='text-xl font-bold'>Tutorly</span>
+          <div className='flex flex-col md:flex-row justify-between items-center gap-6'>
+            {/* Logo */}
+            <Link href='/' className='flex items-center space-x-2 text-primary'>
+              <BookOpen className='h-7 w-7' />
+              <span className='text-2xl font-bold tracking-tight'>Tutorly</span>
+            </Link>
+
+            {/* Links */}
+            <div className='flex gap-6 text-muted-foreground text-sm'>
+              <Link href='/privacy' className='hover:text-primary transition'>
+                Privacy
+              </Link>
+              <Link href='/terms' className='hover:text-primary transition'>
+                Terms
+              </Link>
+              <Link href='/contact' className='hover:text-primary transition'>
+                Contact
+              </Link>
             </div>
-            <p className='text-muted-foreground'>
-              © 2024 Tutorly. All rights reserved.
-            </p>
+
+            {/* Social Icons */}
+            <div className='flex gap-4'>
+              <Link
+                href='https://x.com/AbhishekNI3811'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-muted-foreground hover:text-primary transition'
+              >
+                <Twitter className='h-5 w-5' />
+              </Link>
+              <Link
+                href='https://github.com/abhishekmaniy/tutorly'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-muted-foreground hover:text-primary transition'
+              >
+                <Github className='h-5 w-5' />
+              </Link>
+              <Link
+                href='https://www.linkedin.com/in/abhishekmaniyar502/'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-muted-foreground hover:text-primary transition'
+              >
+                <Linkedin className='h-5 w-5' />
+              </Link>
+            </div>
           </div>
+
+          <p className='mt-6 text-center text-xs text-muted-foreground'>
+            © 2024 Tutorly. All rights reserved.
+          </p>
+
+          <p className='mt-2 text-center text-xs text-muted-foreground'>
+            Made with <span className='text-red-500 text-xl'>'♥'</span> by{' '}
+            <a
+              href='https://x.com/AbhishekNI3811'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='underline underline-offset-2 hover:text-primary'
+            >
+              Abhishek
+            </a>
+          </p>
         </div>
       </footer>
     </div>

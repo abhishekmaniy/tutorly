@@ -20,6 +20,9 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import ShowResult from './ShowResult'
 import { useStore } from '@/store/store'
+import { AlertCircle, Ban, RefreshCcw, CheckCircle2, Play } from 'lucide-react'
+import { motion } from 'framer-motion'
+
 
 interface QuizComponentProps {
   lessonId: string
@@ -48,7 +51,6 @@ export function QuizComponent ({
   const [countdown, setCountdown] = useState<number | null>(null)
   const [startTime, setStartTime] = useState<number | null>(null)
   const { updateCourse } = useStore()
-
 
   console.log(showResults)
 
@@ -80,6 +82,25 @@ export function QuizComponent ({
     setCountdown(null)
     setStartTime(null)
   }, [lessonId, course])
+
+  const instructions = [
+    {
+      icon: <RefreshCcw className='h-5 w-5 text-blue-500' />,
+      text: 'Do not close or refresh the window during the quiz.'
+    },
+    {
+      icon: <Ban className='h-5 w-5 text-red-500' />,
+      text: 'You are not allowed to cheat during the quiz.'
+    },
+    {
+      icon: <AlertCircle className='h-5 w-5 text-yellow-500' />,
+      text: 'Closing the quiz will be considered as forfeiting.'
+    },
+    {
+      icon: <CheckCircle2 className='h-5 w-5 text-green-500' />,
+      text: 'Make sure to answer all questions before submitting.'
+    }
+  ]
 
   if (showResults) {
     return (
@@ -177,18 +198,46 @@ export function QuizComponent ({
         {countdown === 0 ? 'GO!' : countdown}
       </div>
     ) : (
-      <div className='space-y-6 p-4'>
-        <h2 className='text-2xl font-bold'>Quiz Instructions</h2>
-        <ul className='list-disc list-inside space-y-2 text-muted-foreground'>
-          <li>Do not close or refresh the window during the quiz.</li>
-          <li>You are not allowed to cheat during the quiz.</li>
-          <li>Closing the quiz will be considered as forfeiting.</li>
-          <li>Make sure to answer all questions before submitting.</li>
+      <motion.div
+        className='space-y-6 p-6 border rounded-lg bg-card'
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <h2 className='text-3xl font-bold text-primary'>
+          📘 Quiz Instructions
+        </h2>
+
+        <ul className='space-y-4'>
+          {instructions.map((item, index) => (
+            <motion.li
+              key={index}
+              className='flex items-start space-x-3 text-muted-foreground'
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 * index }}
+            >
+              <span>{item.icon}</span>
+              <span>{item.text}</span>
+            </motion.li>
+          ))}
         </ul>
-        <Button onClick={startQuiz} size='lg'>
-          Start Quiz
-        </Button>
-      </div>
+
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Button
+            onClick={startQuiz}
+            size='lg'
+            className='gap-2 text-lg px-6 py-3'
+          >
+            <Play className='h-5 w-5' />
+            Start Quiz
+          </Button>
+        </motion.div>
+      </motion.div>
     )
   }
 

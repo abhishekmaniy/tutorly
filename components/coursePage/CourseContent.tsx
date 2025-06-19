@@ -4,7 +4,9 @@ import {
   CheckCircle,
   ChevronLeft,
   ChevronRight,
-  Clock
+  Clock,
+  Rocket,
+  Sparkles
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
@@ -16,16 +18,23 @@ import { Card, CardContent } from '../ui/card'
 import { QuizComponent } from './quiz-component'
 
 import 'highlight.js/styles/github-dark.css'
-import { ComponentPropsWithoutRef } from 'react'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { ComponentProps } from 'react'
+import rehypeMathjax from 'rehype-mathjax'
 import CourseAnalytics from './CourseAnalytics'
 import CourseComplete from './CourseComplete'
 import CourseKeyPoint from './CourseKeyPoint'
 import CourseSummary from './CourseSummary'
-import rehypeMathjax from 'rehype-mathjax'
-import { ComponentProps } from 'react'
-
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { CopyBlock, dracula } from 'react-code-blocks'
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from 'recharts'
+import { motion } from 'framer-motion'
 
 interface CodeProps extends ComponentProps<'code'> {
   inline?: boolean
@@ -81,10 +90,20 @@ const CourseContent = ({
               <div className='prose prose-slate dark:prose-invert max-w-none'>
                 <div className='flex items-center justify-between mb-6'>
                   <div>
-                    <h1 className='text-3xl font-bold mb-2'>
+                    <motion.h1
+                      className='text-3xl font-bold mb-2'
+                      initial={{ opacity: 0, y: -20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 0.1 }}
+                    >
                       {selectedLesson?.title}
-                    </h1>
-                    <div className='flex items-center space-x-4 text-sm text-muted-foreground'>
+                    </motion.h1>
+                    <motion.div
+                      className='flex items-center space-x-4 text-sm text-muted-foreground'
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                    >
                       <Badge variant='secondary'>
                         Lesson {selectedLesson?.order! + 1}
                       </Badge>
@@ -95,65 +114,113 @@ const CourseContent = ({
                             ?.duration
                         }
                       </span>
-                    </div>
+                    </motion.div>
                   </div>
                   {completedLessons.includes(selectedLesson?.id!) && (
-                    <Badge variant='default' className='bg-green-500'>
-                      <CheckCircle className='mr-1 h-4 w-4' />
-                      Completed
-                    </Badge>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.3 }}
+                    >
+                      <Badge variant='default' className='bg-green-500'>
+                        <CheckCircle className='mr-1 h-4 w-4' />
+                        Completed
+                      </Badge>
+                    </motion.div>
                   )}
                 </div>
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeMathjax]}
-                  components={{
-                    code: (({
-                      inline,
-                      className,
-                      children,
-                      ...props
-                    }: CodeProps) => {
-                      const match = /language-(\w+)/.exec(className || '')
-                      if (inline || !match) {
-                        return (
-                          <code
-                            className={className}
-                            style={{
-                              background: '#1e1e1e',
-                              color: '#dcdcdc',
-                              padding: '0.2rem 0.4rem',
-                              borderRadius: '0.3rem',
-                              fontSize: '0.9rem'
-                            }}
-                            {...props}
-                          >
-                            {children}
-                          </code>
-                        )
-                      }
+                <div className='space-y-6'>
+                  {selectedLesson?.contentBlocks
+                    .sort((a, b) => a.order - b.order)
+                    .map(block => {
+                      switch (block.type) {
+                        case 'TEXT':
+                        case 'MATH':
+                          return (
+                            <motion.div
+                              key={block.id}
+                              className='prose dark:prose-invert max-w-none'
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                duration: 0.4,
+                                delay: block.order * 0.1
+                              }}
+                            >
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                rehypePlugins={[
+                                  rehypeRaw,
+                                  rehypeSanitize,
+                                  rehypeMathjax
+                                ]}
+                              >
+                                {block.text || ''}
+                              </ReactMarkdown>
+                            </motion.div>
+                          )
 
-                      return (
-                        <div style={{ margin: '1rem 0' }}>
-                          <SyntaxHighlighter
-                            language={match[1]}
-                            style={vscDarkPlus}
-                            customStyle={{
-                              padding: '1rem',
-                              borderRadius: '0.5rem',
-                              fontSize: '0.9rem'
-                            }}
-                            showLineNumbers
-                          >
-                            {String(children).replace(/\n$/, '')}
-                          </SyntaxHighlighter>
-                        </div>
-                      )
-                    }) as any
-                  }}
-                >
-                  {selectedLesson?.content}
-                </ReactMarkdown>
+                        case 'CODE':
+                          return (
+                            <motion.div
+                              key={block.id}
+                              className='rounded-xl overflow-hidden'
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                duration: 0.4,
+                                delay: block.order * 0.1
+                              }}
+                            >
+                              <CopyBlock
+                                text={block.code || ''}
+                                language='javascript' // ⚠️ Optionally, extract language from code blocks if you want dynamic detection
+                                showLineNumbers
+                                wrapLongLines
+                                theme={dracula}
+                                codeBlock
+                              />
+                            </motion.div>
+                          )
+
+                        case 'GRAPH':
+                          return (
+                            <motion.div
+                              key={block.id}
+                              className='w-full h-64'
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                duration: 0.4,
+                                delay: block.order * 0.1
+                              }}
+                            >
+                              <ResponsiveContainer>
+                                <LineChart data={block.graph?.data || []}>
+                                  <CartesianGrid strokeDasharray='3 3' />
+                                  <XAxis dataKey={block.graph?.xKey || 'x'} />
+                                  <YAxis />
+                                  <Tooltip />
+                                  <Line
+                                    type='monotone'
+                                    dataKey={block.graph?.yKey || 'y'}
+                                    stroke='#8884d8'
+                                    strokeWidth={2}
+                                  />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </motion.div>
+                          )
+
+                        default:
+                          return (
+                            <p key={block.id} className='text-muted-foreground'>
+                              Unknown block type: {block.type}
+                            </p>
+                          )
+                      }
+                    })}
+                </div>
                 <div className='flex justify-between mt-8 pt-6 border-t'>
                   <Button
                     variant='outline'
@@ -238,19 +305,48 @@ const CourseContent = ({
               !showKeyPoints &&
               !showAnalytics &&
               !courseCompleted && (
-                <div className='text-center py-12'>
-                  <BookOpen className='mx-auto mb-4 h-16 w-16 text-muted-foreground' />
-                  <h2 className='text-2xl font-bold mb-2'>
-                    Welcome to your course!
+                <motion.div
+                  className='text-center py-16 px-4'
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                >
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.8, ease: 'backOut' }}
+                  >
+                    <div className='relative inline-flex mb-6'>
+                      <div className='absolute inset-0 rounded-full bg-gradient-to-tr from-primary/30 to-primary/5 blur-xl'></div>
+                      <div className='relative p-4 rounded-full bg-primary/10'>
+                        <Rocket className='h-12 w-12 text-primary' />
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  <h2 className='text-3xl font-extrabold tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80'>
+                    🚀 Welcome to Your Course!
                   </h2>
-                  <p className='text-muted-foreground mb-6'>
-                    Select a lesson from the sidebar to get started with your
-                    learning journey.
+
+                  <p className='text-muted-foreground text-lg max-w-xl mx-auto mb-8'>
+                    Select a lesson from the sidebar to begin your journey of
+                    learning, growth, and discovery.
                   </p>
-                  <Button onClick={() => setSelectedLesson(course.lessons[0])}>
+
+                  <Button
+                    onClick={() => setSelectedLesson(course?.lessons[0])}
+                    size='lg'
+                    className='group'
+                  >
                     Start First Lesson
+                    <ChevronRight className='ml-2 h-5 w-5 transition-transform group-hover:translate-x-1' />
                   </Button>
-                </div>
+
+                  <div className='mt-6 text-sm text-muted-foreground flex justify-center gap-2'>
+                    <Sparkles className='h-4 w-4 text-primary' />
+                    <span>New skills unlocked with every lesson!</span>
+                  </div>
+                </motion.div>
               )}
           </CardContent>
         </div>

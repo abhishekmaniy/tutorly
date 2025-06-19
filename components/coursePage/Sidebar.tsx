@@ -25,6 +25,12 @@ import {
 import { Separator } from '../ui/separator'
 import { Course, Lesson, Quiz } from '@/lib/types'
 import { Skeleton } from '../ui/skeleton'
+import { motion, AnimatePresence } from 'framer-motion'
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+}
 
 interface SidebarProps {
   course?: Course
@@ -73,25 +79,31 @@ const Sidebar = ({
   setCourseCompleted,
   checkCourseCompletion
 }: SidebarProps) => {
-
-
-
   if (!course) {
     return (
-      <div className='lg:col-span-1'>
-        <Card className='sticky top-6 p-4 space-y-4'>
-          <Skeleton className='h-6 w-3/4' />
-          <Skeleton className='h-4 w-full' />
-          <Skeleton className='h-2 w-full' />
-          <Skeleton className='h-10 w-full' />
-          <Skeleton className='h-10 w-full' />
-          <Skeleton className='h-10 w-full' />
+      <motion.div
+        className='lg:col-span-1 p-4'
+        variants={cardVariants}
+        initial='hidden'
+        animate='visible'
+      >
+        <Card className='sticky top-6 p-4 space-y-5'>
+          <Skeleton className='h-6 w-1/2' /> {/* Title */}
+          <Skeleton className='h-4 w-full' /> {/* Description */}
+          <Skeleton className='h-2 w-full' /> {/* Progress Label */}
+          <Skeleton className='h-2 w-full rounded bg-muted-foreground/20' />{' '}
+          {/* Progress Bar */}
+          <div className='space-y-2 mt-4'>
+            <Skeleton className='h-10 w-full rounded-lg' /> {/* Lessons */}
+            <Skeleton className='h-10 w-full rounded-lg' /> {/* Quizzes */}
+            <Skeleton className='h-10 w-full rounded-lg' /> {/* Summary */}
+            <Skeleton className='h-10 w-full rounded-lg' /> {/* Key Points */}
+            <Skeleton className='h-10 w-full rounded-lg' /> {/* Analytics */}
+          </div>
         </Card>
-      </div>
+      </motion.div>
     )
   }
-
-  console.log("Quiz" , completedQuizzes)
 
   return (
     <div className='lg:col-span-1'>
@@ -104,6 +116,7 @@ const Sidebar = ({
               <span>Progress</span>
               <span>{progress}%</span>
             </div>
+
             <Progress value={progress} className='h-2' />
           </div>
         </CardHeader>
@@ -127,38 +140,40 @@ const Sidebar = ({
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className='space-y-2 mt-2'>
-              {course.lessons.map(lesson => (
-                <Button
-                  key={lesson.id}
-                  variant={
-                    selectedLesson?.id === lesson.id ? 'secondary' : 'ghost'
-                  }
-                  className='w-full justify-start h-auto p-3'
-                  onClick={() => {
-                    setSelectedLesson(lesson)
-                    setSelectedQuiz(null)
-                    setShowSummary(false)
-                    setShowKeyPoints(false)
-                    setShowAnalytics(false)
-                  }}
-                >
-                  <div className='flex items-center space-x-3 w-full'>
-                    {completedLessons.includes(lesson.id) ? (
-                      <CheckCircle className='h-5 w-5 text-green-500 flex-shrink-0' />
-                    ) : (
-                      <Circle className='h-5 w-5 text-muted-foreground flex-shrink-0' />
-                    )}
-                    <div className='text-left flex-1 min-w-0'>
-                      <p className='text-sm font-medium truncate'>
-                        {lesson.title}
-                      </p>
-                      <p className='text-xs text-muted-foreground'>
-                        {lesson.duration}
-                      </p>
+              <AnimatePresence>
+                {course.lessons.map(lesson => (
+                  <Button
+                    key={lesson.id}
+                    variant={
+                      selectedLesson?.id === lesson.id ? 'secondary' : 'ghost'
+                    }
+                    className='w-full justify-start h-auto p-3'
+                    onClick={() => {
+                      setSelectedLesson(lesson)
+                      setSelectedQuiz(null)
+                      setShowSummary(false)
+                      setShowKeyPoints(false)
+                      setShowAnalytics(false)
+                    }}
+                  >
+                    <div className='flex items-center space-x-3 w-full'>
+                      {completedLessons.includes(lesson.id) ? (
+                        <CheckCircle className='h-5 w-5 text-green-500 flex-shrink-0' />
+                      ) : (
+                        <Circle className='h-5 w-5 text-muted-foreground flex-shrink-0' />
+                      )}
+                      <div className='text-left flex-1 min-w-0'>
+                        <p className='text-sm font-medium truncate'>
+                          {lesson.title}
+                        </p>
+                        <p className='text-xs text-muted-foreground'>
+                          {lesson.duration}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </Button>
-              ))}
+                  </Button>
+                ))}
+              </AnimatePresence>
             </CollapsibleContent>
           </Collapsible>
 
@@ -182,90 +197,100 @@ const Sidebar = ({
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className='space-y-2 mt-2'>
-              {course.lessons.map(lesson => (
-                <Button
-                  key={`quiz-${lesson.id}`}
-                  variant={
-                    selectedQuiz === lesson.id ? 'secondary' : 'ghost'
-                  }
-                  className='w-full justify-start h-auto p-3'
-                  onClick={() => {
-                    setSelectedQuiz(lesson.id)
-                    setSelectedLesson(null) 
-                    setShowSummary(false)
-                    setShowKeyPoints(false)
-                    setShowAnalytics(false)
-                  }}
-                >
-                  <div className='flex items-center space-x-3 w-full'>
-                    {completedQuizzes.includes(lesson?.quizz?.id!) ? (
-                      <CheckCircle className='h-5 w-5 text-green-500 flex-shrink-0' />
-                    ) : (
-                      <Circle className='h-5 w-5 text-muted-foreground flex-shrink-0' />
-                    )}
-                    <div className='text-left flex-1 min-w-0'>
-                      <p className='text-sm font-medium truncate'>
-                        Lesson {lesson.order} Quiz
-                      </p>
-                      <p className='text-xs text-muted-foreground'>
-                        5 questions
-                      </p>
+              <AnimatePresence>
+                {course.lessons.map(lesson => (
+                  <Button
+                    key={`quiz-${lesson.id}`}
+                    variant={selectedQuiz === lesson.id ? 'secondary' : 'ghost'}
+                    className='w-full justify-start h-auto p-3'
+                    onClick={() => {
+                      setSelectedQuiz(lesson.id)
+                      setSelectedLesson(null)
+                      setShowSummary(false)
+                      setShowKeyPoints(false)
+                      setShowAnalytics(false)
+                    }}
+                  >
+                    <div className='flex items-center space-x-3 w-full'>
+                      {completedQuizzes.includes(lesson?.quizz?.id!) ? (
+                        <CheckCircle className='h-5 w-5 text-green-500 flex-shrink-0' />
+                      ) : (
+                        <Circle className='h-5 w-5 text-muted-foreground flex-shrink-0' />
+                      )}
+                      <div className='text-left flex-1 min-w-0'>
+                        <p className='text-sm font-medium truncate'>
+                          Lesson {lesson.order} Quiz
+                        </p>
+                        <p className='text-xs text-muted-foreground'>
+                          5 questions
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </Button>
-              ))}
+                  </Button>
+                ))}
+              </AnimatePresence>
             </CollapsibleContent>
           </Collapsible>
 
           <Separator />
 
           {/* Summary Section */}
-          <Button
-            variant={showSummary ? 'secondary' : 'ghost'}
-            className='w-full justify-start'
-            onClick={() => {
-              setShowSummary(true)
-              setShowKeyPoints(false)
-              setShowAnalytics(false)
-              setSelectedLesson(null) // ✅ Fix here
-              setSelectedQuiz(null)
-            }}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
           >
-            <Target className='mr-3 h-5 w-5' />
-            Course Summary
-          </Button>
+            <Button
+              variant={showSummary ? 'secondary' : 'ghost'}
+              className='w-full justify-start'
+              onClick={() => {
+                setShowSummary(true)
+                setShowKeyPoints(false)
+                setShowAnalytics(false)
+                setSelectedLesson(null) // ✅ Fix here
+                setSelectedQuiz(null)
+              }}
+            >
+              <Target className='mr-3 h-5 w-5' />
+              Course Summary
+            </Button>
+          </motion.div>
 
           {/* Key Points Section */}
-          <Button
-            variant={showKeyPoints ? 'secondary' : 'ghost'}
-            className='w-full justify-start'
-            onClick={() => {
-              setShowKeyPoints(true)
-              setShowSummary(false)
-              setShowAnalytics(false)
-              setSelectedLesson(null) // ✅ Fix here
-              setSelectedQuiz(null)
-            }}
-          >
-            <CheckCircle className='mr-3 h-5 w-5' />
-            Key Points
-          </Button>
+          <motion.div>
+            <Button
+              variant={showKeyPoints ? 'secondary' : 'ghost'}
+              className='w-full justify-start'
+              onClick={() => {
+                setShowKeyPoints(true)
+                setShowSummary(false)
+                setShowAnalytics(false)
+                setSelectedLesson(null) // ✅ Fix here
+                setSelectedQuiz(null)
+              }}
+            >
+              <CheckCircle className='mr-3 h-5 w-5' />
+              Key Points
+            </Button>
+          </motion.div>
 
           {/* Analytics Section */}
-          <Button
-            variant={showAnalytics ? 'secondary' : 'ghost'}
-            className='w-full justify-start'
-            onClick={() => {
-              setShowAnalytics(true)
-              setShowSummary(false)
-              setShowKeyPoints(false)
-              setSelectedLesson(null) // ✅ Fix here
-              setSelectedQuiz(null)
-            }}
-          >
-            <BarChart className='mr-3 h-5 w-5' />
-            Analytics
-          </Button>
+          <motion.div>
+            <Button
+              variant={showAnalytics ? 'secondary' : 'ghost'}
+              className='w-full justify-start'
+              onClick={() => {
+                setShowAnalytics(true)
+                setShowSummary(false)
+                setShowKeyPoints(false)
+                setSelectedLesson(null) // ✅ Fix here
+                setSelectedQuiz(null)
+              }}
+            >
+              <BarChart className='mr-3 h-5 w-5' />
+              Analytics
+            </Button>
+          </motion.div>
 
           {/* Course Completion Section */}
           {checkCourseCompletion() && !courseCompleted && (

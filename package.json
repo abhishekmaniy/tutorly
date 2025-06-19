@@ -37,6 +37,7 @@
     "next-themes": "latest",
     "prisma": "^6.9.0",
     "react": "^18",
+    "react-code-blocks": "^0.1.6",
     "react-dom": "^18",
     "react-hot-toast": "^2.5.2",
     "react-markdown": "^10.1.0",
