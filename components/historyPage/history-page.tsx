@@ -11,13 +11,40 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { BookOpen, Clock, Trophy, Calendar, ArrowRight } from 'lucide-react'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { ThemeToggle } from '@/components/common/theme-toggle'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import Link from 'next/link'
 import { useStore } from '@/store/store'
+import axios from 'axios'
+import { useEffect, useState } from 'react'
+import { useAuth } from '@clerk/nextjs'
 
 export function HistoryPage () {
-  const { user, getCourse } = useStore()
+  const { user, setUser } = useStore()
+  const { getToken, userId } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+
+  const course2 = user?.courses
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        const token = await getToken()
+        const response = await axios.get(`/api/user`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+
+        setUser(response.data)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setIsLoading(false) // Mark loading complete
+      }
+    }
+
+    fetchData()
+  }, [getToken, userId])
 
   const courses = [
     {
@@ -128,6 +155,13 @@ export function HistoryPage () {
     }
   }
 
+  function formatDurationFromMs (ms: number) {
+    const totalMinutes = Math.floor(ms / 1000 / 60)
+    const h = Math.floor(totalMinutes / 60)
+    const m = totalMinutes % 60
+    return h > 0 ? `${h}h ${m}m` : `${m}m`
+  }
+
   return (
     <div className='min-h-screen bg-background'>
       {/* Top Navigation */}
@@ -173,7 +207,7 @@ export function HistoryPage () {
                   <p className='text-sm font-medium text-muted-foreground'>
                     Total Courses
                   </p>
-                  <p className='text-2xl font-bold'>{courses.length}</p>
+                  <p className='text-2xl font-bold'>{course2?.length}</p>
                 </div>
                 <BookOpen className='h-8 w-8 text-primary' />
               </div>
@@ -188,7 +222,7 @@ export function HistoryPage () {
                     Completed
                   </p>
                   <p className='text-2xl font-bold text-green-600'>
-                    {courses.filter(c => c.status === 'Completed').length}
+                    {course2?.filter(c => c.status === 'COMPLETED').length}
                   </p>
                 </div>
                 <Trophy className='h-8 w-8 text-green-600' />
@@ -204,7 +238,7 @@ export function HistoryPage () {
                     In Progress
                   </p>
                   <p className='text-2xl font-bold text-blue-600'>
-                    {courses.filter(c => c.status === 'In Progress').length}
+                    {course2?.filter(c => c.status === 'IN_PROGRESS').length}
                   </p>
                 </div>
                 <Clock className='h-8 w-8 text-blue-600' />
@@ -220,14 +254,19 @@ export function HistoryPage () {
                     Total Time
                   </p>
                   <p className='text-2xl font-bold'>
-                    {courses
-                      .reduce((total, course) => {
-                        const hours = Number.parseFloat(
-                          course.timeSpent.split(' ')[0]
-                        )
-                        return total + hours
-                      }, 0)
-                      .toFixed(1)}
+                    {course2?.reduce((total, course) => {
+                      const lessons = course.lessons
+
+                      const lessonTimeSpent = lessons
+                        .map(lesson => lesson?.timeTaken || 0)
+                        .reduce((acc, curr) => acc + curr, 0)
+
+                      const quizTimeSpent = lessons
+                        .map(lesson => lesson.quizz?.timeTaken || 0)
+                        .reduce((acc, curr) => acc + curr, 0)
+
+                      return total + lessonTimeSpent + quizTimeSpent
+                    }, 0) || 0}
                     h
                   </p>
                 </div>
@@ -239,12 +278,12 @@ export function HistoryPage () {
 
         {/* Courses Grid */}
         <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
-          {courses.map(course => (
+          {course2?.map(course => (
             <Link key={course.id} href={`/course/${course.id}`}>
               <Card className='group cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02]'>
                 <div className='aspect-video relative overflow-hidden rounded-t-lg'>
                   <img
-                    src={course.thumbnail || '/placeholder.svg'}
+                    src={'/placeholder.svg'}
                     alt={course.title}
                     className='w-full h-full object-cover transition-transform group-hover:scale-105'
                   />
@@ -284,13 +323,22 @@ export function HistoryPage () {
                     <div>
                       <p className='text-muted-foreground'>Lessons</p>
                       <p className='font-medium'>
-                        {course.completedLessons}/{course.totalLessons}
+                        {
+                          course.lessons.filter(lesson => lesson.isCompleted)
+                            .length
+                        }
+                        /{course?.lessons?.length}
                       </p>
                     </div>
                     <div>
                       <p className='text-muted-foreground'>Quizzes</p>
                       <p className='font-medium'>
-                        {course.completedQuizzes}/{course.totalQuizzes}
+                        {
+                          course.lessons.filter(
+                            lesson => lesson.quizz && lesson.quizz.isCompleted
+                          ).length
+                        }
+                        /{course.lessons.length}
                       </p>
                     </div>
                   </div>
@@ -299,7 +347,15 @@ export function HistoryPage () {
                   <div className='flex items-center justify-between text-sm'>
                     <div className='flex items-center space-x-2'>
                       <Clock className='h-4 w-4 text-muted-foreground' />
-                      <span>{course.timeSpent}</span>
+                      <span>
+                        {formatDurationFromMs(
+                          course.lessons.reduce((total, lesson) => {
+                            const lessonTime = lesson?.timeTaken || 0
+                            const quizTime = lesson.quizz?.timeTaken || 0
+                            return total + lessonTime + quizTime
+                          }, 0)
+                        )}
+                      </span>
                     </div>
                     <span
                       className={`font-medium ${getGradeColor(course.grade)}`}
@@ -311,12 +367,12 @@ export function HistoryPage () {
                   {/* Dates */}
                   <div className='text-xs text-muted-foreground'>
                     <p>
-                      Started: {new Date(course.startDate).toLocaleDateString()}
+                      Started: {new Date(course.createdAt).toLocaleDateString()}
                     </p>
-                    {course.completedDate && (
+                    {course.completedAt && (
                       <p>
                         Completed:{' '}
-                        {new Date(course.completedDate).toLocaleDateString()}
+                        {new Date(course.completedAt).toLocaleDateString()}
                       </p>
                     )}
                   </div>
@@ -343,190 +399,3 @@ export function HistoryPage () {
   )
 }
 
-// 'use client'
-
-// import { Button } from '@/components/ui/button'
-// import {
-//   Card,
-//   CardContent,
-//   CardDescription,
-//   CardHeader,
-//   CardTitle
-// } from '@/components/ui/card'
-// import { Progress } from '@/components/ui/progress'
-// import { Badge } from '@/components/ui/badge'
-// import { BookOpen, Clock, Trophy, Calendar, ArrowRight } from 'lucide-react'
-// import { ThemeToggle } from '@/components/theme-toggle'
-// import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-// import Link from 'next/link'
-// import { useStore } from '@/store/store'
-// import { CourseStatus, Grade, Course } from '@/types'
-
-// export function HistoryPage() {
-//   const { user } = useStore()
-//   const courses = user?.courses || []
-
-//   const getStatusColor = (status: CourseStatus) => {
-//     switch (status) {
-//       case 'COMPLETED':
-//         return 'bg-green-500'
-//       case 'IN_PROGRESS':
-//         return 'bg-blue-500'
-//       default:
-//         return 'bg-gray-500'
-//     }
-//   }
-
-//   const getGradeColor = (grade: Grade) => {
-//     switch (grade) {
-//       case 'EXCELLENT':
-//         return 'text-green-600'
-//       case 'GOOD':
-//         return 'text-blue-600'
-//       case 'AVERAGE':
-//         return 'text-yellow-600'
-//       case 'NEEDS_IMPROVEMENT':
-//         return 'text-red-600'
-//       default:
-//         return 'text-gray-600'
-//     }
-//   }
-
-//   const completedCourses = courses.filter(c => c.status === 'COMPLETED').length
-//   const inProgressCourses = courses.filter(c => c.status === 'IN_PROGRESS').length
-
-//   return (
-//     <div className="min-h-screen bg-background">
-//       <nav className="border-b">
-//         <div className="container mx-auto px-4">
-//           <div className="flex h-16 items-center justify-between">
-//             <Link href="/" className="flex items-center space-x-2">
-//               <BookOpen className="h-8 w-8 text-primary" />
-//               <span className="text-2xl font-bold">Tutorly</span>
-//             </Link>
-
-//             <div className="flex items-center space-x-4">
-//               <Link href="/prompt">
-//                 <Button variant="outline" size="sm">
-//                   Create New Course
-//                 </Button>
-//               </Link>
-//               <ThemeToggle />
-//               <Avatar>
-//                 <AvatarImage src="/placeholder.svg?height=32&width=32" />
-//                 <AvatarFallback>JD</AvatarFallback>
-//               </Avatar>
-//             </div>
-//           </div>
-//         </div>
-//       </nav>
-
-//       <div className="container mx-auto px-4 py-8">
-//         <div className="mb-8">
-//           <h1 className="text-4xl font-bold mb-2">Your Learning History</h1>
-//           <p className="text-muted-foreground text-lg">
-//             Track your progress across all courses and continue your learning journey
-//           </p>
-//         </div>
-
-//         <div className="grid gap-6 md:grid-cols-4 mb-8">
-//           <StatCard label="Total Courses" value={courses.length} icon={<BookOpen className="h-8 w-8 text-primary" />} />
-//           <StatCard label="Completed" value={completedCourses} icon={<Trophy className="h-8 w-8 text-green-600" />} valueClass="text-green-600" />
-//           <StatCard label="In Progress" value={inProgressCourses} icon={<Clock className="h-8 w-8 text-blue-600" />} valueClass="text-blue-600" />
-//           <StatCard label="Total Time" value="N/A" icon={<Calendar className="h-8 w-8 text-primary" />} />
-//         </div>
-
-//         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-//           {courses.map(course => (
-//             <Link key={course.id} href={`/course/${course.id}`}>
-//               <Card className="group cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02]">
-//                 <CardHeader className="pb-3">
-//                   <div className="flex items-start justify-between">
-//                     <div className="flex-1">
-//                       <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
-//                         {course.title}
-//                       </CardTitle>
-//                       <CardDescription className="mt-1 line-clamp-2">
-//                         {course.description}
-//                       </CardDescription>
-//                     </div>
-//                     <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors ml-2 flex-shrink-0" />
-//                   </div>
-//                 </CardHeader>
-
-//                 <CardContent className="space-y-4">
-//                   <div>
-//                     <div className="flex justify-between text-sm mb-2">
-//                       <span>Progress</span>
-//                       <span className="font-medium">{course.progress}%</span>
-//                     </div>
-//                     <Progress value={course.progress} className="h-2" />
-//                   </div>
-
-//                   <div className="flex items-center justify-between text-sm">
-//                     <Badge className={getStatusColor(course.status)}>
-//                       {course.status.replace('_', ' ')}
-//                     </Badge>
-//                     <span className={`font-medium ${getGradeColor(course.grade)}`}>
-//                       {course.grade.replace('_', ' ')}
-//                     </span>
-//                   </div>
-
-//                   <div className="text-xs text-muted-foreground">
-//                     <p>
-//                       Started: {new Date(course.createdAt).toLocaleDateString()}
-//                     </p>
-//                     {course.completedAt && (
-//                       <p>
-//                         Completed: {new Date(course.completedAt).toLocaleDateString()}
-//                       </p>
-//                     )}
-//                   </div>
-//                 </CardContent>
-//               </Card>
-//             </Link>
-//           ))}
-//         </div>
-
-//         {courses.length === 0 && (
-//           <div className="text-center py-12">
-//             <BookOpen className="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
-//             <h2 className="text-2xl font-bold mb-2">No courses yet</h2>
-//             <p className="text-muted-foreground mb-6">
-//               Start your learning journey by creating your first course
-//             </p>
-//             <Link href="/prompt">
-//               <Button>Create Your First Course</Button>
-//             </Link>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   )
-// }
-
-// function StatCard({
-//   label,
-//   value,
-//   icon,
-//   valueClass = ''
-// }: {
-//   label: string
-//   value: string | number
-//   icon: React.ReactNode
-//   valueClass?: string
-// }) {
-//   return (
-//     <Card>
-//       <CardContent className="pt-6">
-//         <div className="flex items-center justify-between">
-//           <div>
-//             <p className="text-sm font-medium text-muted-foreground">{label}</p>
-//             <p className={`text-2xl font-bold ${valueClass}`}>{value}</p>
-//           </div>
-//           {icon}
-//         </div>
-//       </CardContent>
-//     </Card>
-//   )
-// }

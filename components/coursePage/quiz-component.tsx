@@ -23,7 +23,6 @@ import { useStore } from '@/store/store'
 import { AlertCircle, Ban, RefreshCcw, CheckCircle2, Play } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-
 interface QuizComponentProps {
   lessonId: string
   onComplete: () => void
@@ -50,7 +49,7 @@ export function QuizComponent ({
   const [hasStarted, setHasStarted] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [startTime, setStartTime] = useState<number | null>(null)
-  const { updateCourse } = useStore()
+  const { updateQuizInCourse } = useStore()
 
   console.log(showResults)
 
@@ -140,18 +139,21 @@ export function QuizComponent ({
     const timeTaken = startTime
       ? Math.floor((Date.now() - startTime) / 1000 / 60)
       : 0
+
     setTimeSpent(timeTaken)
-    await axios.post('/api/complete-quiz', {
+
+    const response = await axios.post('/api/complete-quiz', {
       quizId: quiz?.id,
       courseId: course?.id,
       timeTaken,
       answers
     })
-    const response = await axios.get(`/api/course?id=${course?.id}`)
 
-    updateCourse(response.data)
+    const updatedQuiz = response.data.quiz
+
+    updateQuizInCourse(course?.id!, updatedQuiz)
+
     setShowResults(true)
-
     onComplete()
   }
 

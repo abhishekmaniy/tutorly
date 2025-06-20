@@ -28,6 +28,12 @@ const CourseAnalytics = ({
   completedQuizzes: string[]
   completedLessons: string[]
 }) => {
+  function formatMinutes (minutes: number) {
+    const h = Math.floor(minutes / 60)
+    const m = minutes % 60
+    return h > 0 ? `${h}h ${m}m` : `${m}m`
+  }
+
   return (
     <div>
       <div className='flex items-center mb-6'>
@@ -49,11 +55,11 @@ const CourseAnalytics = ({
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
-              {analyticsData.timeSpent.total}h
+              {formatMinutes(analyticsData.timeSpent.total)}
             </div>
             <p className='text-xs text-muted-foreground'>
-              Lessons: {analyticsData.timeSpent.lessons}h | Quizzes:{' '}
-              {analyticsData.timeSpent.quizzes}h
+              Lessons: {formatMinutes(analyticsData.timeSpent.lessons)} |
+              Quizzes: {formatMinutes(analyticsData.timeSpent.quizzes)}
             </p>
           </CardContent>
         </Card>

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const POST = async (req: NextRequest) => {
   try {
-    const { lessonId, courseId } = await req.json()
+    const { lessonId, courseId, timeTaken } = await req.json()
 
     const course = await db.course.findUnique({
       where: { id: courseId },
@@ -22,12 +22,18 @@ export const POST = async (req: NextRequest) => {
 
     const updatedLesson = await db.lesson.update({
       where: { id: lessonId },
-      data: { isCompleted: true } 
+      data: { isCompleted: true, timeTaken }
     })
 
-    return NextResponse.json({ message: 'Lesson marked as completed', lesson: updatedLesson })
+    return NextResponse.json({
+      message: 'Lesson marked as completed',
+      lesson: updatedLesson
+    })
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }

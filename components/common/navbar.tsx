@@ -1,6 +1,6 @@
 'use client'
 
-import { ThemeToggle } from '@/components/theme-toggle'
+import { ThemeToggle } from '@/components/common/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { useAuth, UserButton } from '@clerk/nextjs'
 import { BookOpen, Menu, X } from 'lucide-react'

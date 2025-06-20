@@ -1,6 +1,6 @@
 'use client'
 
-import { ThemeToggle } from '@/components/theme-toggle'
+import { ThemeToggle } from '@/components/common/theme-toggle'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Lesson, Quiz } from '@/lib/types'
@@ -43,21 +43,34 @@ export function CoursePage ({ courseId }: CoursePageProps) {
   const { addCourse, user, setUser } = useStore()
 
   const course = user?.courses.find(c => c.id === courseId)
+  const lessons = course?.lessons || []
+
+  const lessonTimeSpent = lessons
+    .map(lesson => lesson?.timeTaken || 0)
+    .reduce((acc, curr) => acc + curr, 0)
+
+  const quizTimeSpent = lessons
+    ?.map(lesson => lesson.quizz?.timeTaken || 0)
+    .reduce((acc, curr) => acc + curr, 0)
 
   const analyticsData = useMemo(
     () => ({
-      timeSpent: { total: 4.5, lessons: 3.2, quizzes: 1.3 },
+      timeSpent: {
+        total: lessonTimeSpent + quizTimeSpent,
+        lessons: lessonTimeSpent,
+        quizzes: quizTimeSpent
+      },
       performance: {
         averageScore: 85,
-        totalQuizzes: 8,
-        passedQuizzes: 7,
+        totalQuizzes: lessons.length,
+        passedQuizzes: completedQuizzes.length,
         grade: 'Excellent'
       },
       progress: {
         lessonsCompleted: completedLessons.length,
         quizzesCompleted: completedQuizzes.length,
-        totalLessons: course?.lessons.length || 0,
-        totalQuizzes: course?.lessons.length || 0
+        totalLessons: lessons.length || 0,
+        totalQuizzes: lessons.length || 0
       }
     }),
     [completedLessons.length, completedQuizzes.length, course]
@@ -122,13 +135,17 @@ export function CoursePage ({ courseId }: CoursePageProps) {
     }
   }, [course])
 
-  console.log('Lessons', course?.lessons)
-
   const checkCourseCompletion = () => {
     return (
       completedLessons.length === (course?.lessons.length || 0) &&
       completedQuizzes.length === (course?.lessons.length || 0)
     )
+  }
+
+  const lessonStartTimeRef = useRef<number | null>(null)
+
+  const handleSelectLesson = (lesson: Lesson) => {
+    lessonStartTimeRef.current = Date.now()
   }
 
   useEffect(() => {
@@ -141,14 +158,25 @@ export function CoursePage ({ courseId }: CoursePageProps) {
     return totalItems ? Math.round((completedItems / totalItems) * 100) : 0
   }, [course, completedLessons.length, completedQuizzes.length])
 
-  const handleLessonComplete = async (lessonId: string) => {
-    if (!completedLessons.includes(lessonId)) {
-      setCompletedLessons(prev => [...prev, lessonId])
-      await axios.post('/api/complete-lesson', { lessonId, courseId })
-    }
-  }
+  console.log('Completed Lesson Id', completedLessons)
 
-  console.log('COmpeltedQuiz', completedQuizzes)
+  const handleLessonComplete = async (lessonId: string) => {
+    const startTime = lessonStartTimeRef.current
+    const timeTaken = startTime
+      ? Math.floor((Date.now() - startTime) / 1000)
+      : 0
+
+    setCompletedLessons(prev => {
+      if (prev.includes(lessonId)) return prev // Avoid duplicate
+      return [...prev, lessonId]
+    })
+
+    await axios.post('/api/complete-lesson', {
+      lessonId,
+      courseId,
+      timeTaken
+    })
+  }
 
   const handleQuizComplete = (lessonId: string) => {
     if (course) {
@@ -172,11 +200,11 @@ export function CoursePage ({ courseId }: CoursePageProps) {
     return lesson
   }
 
- useEffect(() => {
-  if (mainRef.current) {
-    mainRef.current.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-}, [selectedLesson, showSummary, showKeyPoints, showAnalytics])
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [selectedLesson, showSummary, showKeyPoints, showAnalytics])
 
   return (
     <div className='h-screen grid grid-rows-[auto_1fr] bg-background'>

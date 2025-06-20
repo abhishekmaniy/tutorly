@@ -9,7 +9,10 @@ export const POST = async (req: NextRequest) => {
     const { quizId, courseId, answers, timeTaken } = await req.json()
 
     if (!quizId || !courseId) {
-      return NextResponse.json({ error: 'quizId and courseId are required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'quizId and courseId are required' },
+        { status: 400 }
+      )
     }
 
     const course = await db.course.findUnique({
@@ -27,7 +30,10 @@ export const POST = async (req: NextRequest) => {
 
     const lesson = course.lessons.find(lesson => lesson.quizz?.id === quizId)
     if (!lesson || !lesson.quizz) {
-      return NextResponse.json({ error: 'Quiz not found in course lessons' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Quiz not found in course lessons' },
+        { status: 404 }
+      )
     }
 
     const quiz = lesson.quizz
@@ -59,7 +65,8 @@ export const POST = async (req: NextRequest) => {
 
         case 'TRUE_FALSE': {
           if (typeof userAnswer === 'boolean') {
-            const correctAnswer = question.correctAnswers[0].toLowerCase() === 'true'
+            const correctAnswer =
+              question.correctAnswers[0].toLowerCase() === 'true'
             if (userAnswer === correctAnswer) {
               isCorrect = true
               awardedMarks = question.marks
@@ -70,7 +77,9 @@ export const POST = async (req: NextRequest) => {
 
         case 'MULTIPLE_SELECT': {
           if (Array.isArray(userAnswer)) {
-            const selectedOptions = userAnswer.map((i: number) => question.options[i])
+            const selectedOptions = userAnswer.map(
+              (i: number) => question.options[i]
+            )
             const sortedUser = [...selectedOptions].sort()
             const sortedCorrect = [...question.correctAnswers].sort()
             if (JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect)) {
@@ -81,7 +90,8 @@ export const POST = async (req: NextRequest) => {
                 question.correctAnswers.includes(ans)
               )
               awardedMarks = Math.floor(
-                (correctSelected.length / question.correctAnswers.length) * question.marks
+                (correctSelected.length / question.correctAnswers.length) *
+                  question.marks
               )
             }
           }
@@ -136,7 +146,14 @@ You are acting as an exam evaluator for descriptive answers. Follow these rules 
       )
     ])
 
-    return NextResponse.json({ status: 200, gainedMarks })
+    const updatedQuiz = await db.quiz.findUnique({
+      where: { id: quiz.id },
+      include: {
+        questions: true
+      }
+    })
+
+    return NextResponse.json({ status: 200, quiz: updatedQuiz })
   } catch (error) {
     console.error('Error completing quiz:', error)
     return NextResponse.json({ status: 500, error: 'Failed to complete quiz' })

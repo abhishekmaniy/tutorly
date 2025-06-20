@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Navbar } from '@/components/navbar'
+import { Navbar } from '@/components/common/navbar'
 import {
   BookOpen,
   Brain,
@@ -299,7 +299,7 @@ export function LandingPage () {
       </section>
 
       {/* Features Section */}
-      <section id="features" className='py-20'>
+      <section id='features' className='py-20'>
         <div className='container mx-auto px-4'>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -415,7 +415,7 @@ export function LandingPage () {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className='py-20'>
+      <section id='pricing' className='py-20'>
         <div className='container mx-auto px-4'>
           <motion.div
             className='mx-auto max-w-2xl text-center mb-16'
@@ -492,7 +492,7 @@ export function LandingPage () {
       </section>
 
       {/* Reviews Section */}
-      <section id="reviews" className='py-20 bg-muted/30'>
+      <section id='reviews' className='py-20 bg-muted/30'>
         <div className='container mx-auto px-4'>
           <motion.div
             className='mx-auto max-w-2xl text-center mb-16'

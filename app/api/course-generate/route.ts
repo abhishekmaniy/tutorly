@@ -1,17 +1,23 @@
+// app/api/generate-course/route.ts
+
 import { db } from '@/lib/db'
-import { ContentType } from '@/lib/generated/prisma'
 import { getAuth } from '@clerk/nextjs/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!
+const encoder = new TextEncoder()
 
-async function generateValidJson (
+function streamData (controller: ReadableStreamDefaultController, data: string) {
+  controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+}
+
+async function generateValidJsonWithRetries (
   prompt: string,
   model: any,
-  retries = 3
+  maxRetries = 5
 ): Promise<any> {
-  for (let i = 0; i < retries; i++) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const result = await model.generateContent(prompt)
       let text = result.response
@@ -27,31 +33,163 @@ async function generateValidJson (
 
       return JSON.parse(text)
     } catch (err) {
-      console.warn(`JSON parse error on attempt ${i + 1}:`, err)
-      if (i === retries - 1)
-        throw new Error(
-          `Failed to generate valid JSON after ${retries} attempts.`
-        )
+      console.warn(`Attempt ${attempt} failed to generate valid JSON:`, err)
+      if (attempt === maxRetries)
+        throw new Error(`Failed after ${maxRetries} attempts.`)
+      // ⏱️ Add delay between retries to avoid rate-limiting:
+      await new Promise(res => setTimeout(res, 1000 * attempt))
     }
   }
 }
 
 export async function POST (req: NextRequest) {
   const { userId } = getAuth(req)
-  if (!userId)
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!userId) return new Response('Unauthorized', { status: 401 })
 
   const { prompt } = await req.json()
   const ai = new GoogleGenerativeAI(GEMINI_API_KEY)
   const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
-  try {
-    // 1️⃣ Generate Syllabus
-    const syllabusJson = await generateValidJson(
-      `
+  const stream = new ReadableStream({
+    async start (controller) {
+      try {
+        streamData(controller, '⏳ Starting generation...')
+
+        // 1️⃣ Generate Syllabus
+        streamData(controller, '📚 Generating syllabus...')
+        const syllabusJson = await generateValidJsonWithRetries(
+          getSyllabusPrompt(prompt),
+          model
+        )
+        streamData(
+          controller,
+          `✅ Syllabus generated with ${syllabusJson.lessons.length} lessons.`
+        )
+
+        const lessons = []
+
+        for (const lessonObj of syllabusJson.lessons) {
+          const lessonTitle = lessonObj.title
+          const lessonDuration = lessonObj.duration
+          streamData(controller, `📖 ${lessonTitle}`)
+
+          const context = await generateValidJsonWithRetries(
+            getLessonContextPrompt(lessonTitle),
+            model
+          )
+
+          const allContentBlocks = []
+          for (const section of context.sections) {
+            streamData(controller, `📝 Section: ${section.title}`)
+            const sectionDetail = await generateValidJsonWithRetries(
+              getSectionContentPrompt(section, context),
+              model
+            )
+            for (const block of sectionDetail.contentBlocks) {
+              streamData(controller, `📦 ${block.type}: ${block.content}`)
+            }
+            allContentBlocks.push(...sectionDetail.contentBlocks)
+          }
+
+          const quizJson = await generateValidJsonWithRetries(
+            getQuizPrompt(lessonTitle, allContentBlocks),
+            model
+          )
+          lessons.push({
+            lessonTitle,
+            lessonDuration,
+            context,
+            allContentBlocks,
+            quizJson
+          })
+        }
+
+        streamData(controller, '🗂️ Generating summary...')
+        const summaryJson = await generateValidJsonWithRetries(
+          getSummaryPrompt(prompt),
+          model
+        )
+
+        streamData(controller, '🔑 Generating key points...')
+        const keyPointJson = await generateValidJsonWithRetries(
+          getKeyPointsPrompt(prompt),
+          model
+        )
+
+        streamData(controller, '📊 Generating analytics...')
+        const analyticsJson = await generateValidJsonWithRetries(
+          getAnalyticsPrompt(prompt),
+          model
+        )
+
+        streamData(controller, '💾 Saving to database...')
+
+        await db.course.create({
+          data: {
+            title: syllabusJson.title,
+            description: syllabusJson.description,
+            user: { connect: { id: userId } },
+            lessons: {
+              create: lessons.map((l, idx) => ({
+                title: l.context.title,
+                description: l.context.objective,
+                duration: l.lessonDuration,
+                order: idx,
+                contentBlocks: {
+                  create: l.allContentBlocks.map((block, blockIdx) => ({
+                    order: blockIdx + 1,
+                    type: block.type,
+                    text: block.type === 'TEXT' ? block.content : undefined,
+                    code: block.type === 'CODE' ? block.content : undefined,
+                    math: block.type === 'MATH' ? block.content : undefined,
+                    graph: block.type === 'GRAPH' ? block.content : undefined
+                  }))
+                },
+                quizz: {
+                  create: {
+                    title: l.context.title + ' Quiz',
+                    duration: l.quizJson.duration,
+                    totalMarks: l.quizJson.totalMarks,
+                    passingMarks: l.quizJson.passingMarks,
+                    isCompleted: false,
+                    gainedMarks: 0,
+                    timeTaken: 0,
+                    questions: { create: l.quizJson.questions }
+                  }
+                }
+              }))
+            },
+            summary: { create: summaryJson },
+            keyPoints: { create: keyPointJson },
+            analytics: { create: analyticsJson }
+          }
+        })
+
+        streamData(controller, '✅ Course generation complete.')
+        controller.close()
+      } catch (error) {
+        console.error(error)
+        streamData(controller, '❌ Error generating course')
+        controller.close()
+      }
+    }
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'Transfer-Encoding': 'chunked'
+    }
+  })
+}
+
+function getSyllabusPrompt (topic: string) {
+  return `
 You are an expert educational content creator.
 
-Generate a **comprehensive syllabus** for the topic: **"${prompt}"**.
+Generate a **comprehensive syllabus** for the topic: **"${topic}"**.
 
 ## 📚 Requirements:
 - **Determine the appropriate number of lessons** required to thoroughly teach the topic **based on its depth, complexity, and the coverage required**.
@@ -83,22 +221,11 @@ Return **ONLY** a **valid JSON object** matching **this exact structure**:
 - Avoid generic lesson names like "Introduction" unless truly necessary.
 - Ensure **logical sequence** of lessons, covering foundational concepts before advanced topics.
 - **No markdown. No links. No explanations outside JSON. Return ONLY the JSON object.**
+`
+}
 
-`,
-      model
-    )
-
-    console.log('Syllabus Generated', syllabusJson)
-
-    const lessons = []
-    for (const lessonObj of syllabusJson.lessons) {
-      const lessonTitle = lessonObj.title
-      const lessonDuration = lessonObj.duration
-
-      // 2️⃣ Generate Lesson Content
-
-      const context = await generateValidJson(
-        `
+function getLessonContextPrompt (lessonTitle: string) {
+  return `
 You are an expert curriculum designer.
 
 Generate a **detailed outline** and context for a lesson titled **"${lessonTitle}"**. This should include:
@@ -121,15 +248,11 @@ Return a JSON object:
 }
 
 No explanation. Return ONLY JSON.
-`,
-        model
-      )
+`
+}
 
-      const allContentBlocks = []
-
-      for (const [index, section] of context.sections.entries()) {
-        const sectionDetail = await generateValidJson(
-          `
+function getSectionContentPrompt (section: any, context: any) {
+  return `
 You are an expert lesson content creator.
 
 Generate **detailed, structured lesson content blocks** for the section titled: "${section.title}"
@@ -165,35 +288,17 @@ Return ONLY a valid JSON object with this **EXACT** structure:
 - Combine different block types logically where appropriate.
 - **NO extra fields or unknown "type" values. ONLY use "TEXT", "CODE", "MATH", or "GRAPH".**
 - **Return ONLY the JSON object**, without any markdown wrappers or additional explanation.
+`
+}
 
-NO explanations or text outside the JSON.
-`,
-          model
-        )
-
-        console.log('ContetBlock Generated', sectionDetail.ContetBlock)
-
-        allContentBlocks.push(...sectionDetail.contentBlocks)
-      }
-
-      const lessonJson = {
-        title: context.title,
-        description: context.objective,
-        contentBlocks: allContentBlocks.map((block, index) => ({
-          ...block,
-          order: index + 1 // Ensure order is continuous globally
-        }))
-      }
-
-      // 3️⃣ Generate Quiz
-      const quizJson = await generateValidJson(
-        `
+function getQuizPrompt (lessonTitle: string, contentBlocks: any[]) {
+  return `
 You are an expert quiz generator.
 
 Generate a **high-quality, comprehensive quiz** that tests the learner's understanding of the following lesson content **in depth**.
 
 ## 📘 Lesson Content (Reference for Quiz Generation):
-${JSON.stringify(lessonJson.contentBlocks)}
+${JSON.stringify(contentBlocks)}
 
 ## 📦 Output Format (Strict JSON):
 Return ONLY a **valid JSON object** matching this exact structure:
@@ -229,27 +334,11 @@ Return ONLY a **valid JSON object** matching this exact structure:
 - Use **number** for sequential question numbering starting from 1.
 - **Do NOT repeat content unnecessarily.**
 - **No markdown. No links. No explanations outside JSON. Return ONLY the JSON object.**
+`
+}
 
-`,
-        model
-      )
-      console.log('Quiz Generated', quizJson)
-
-      lessons.push({
-        title: lessonJson.title,
-        description: lessonJson.description,
-        contentBlocks: lessonJson.contentBlocks,
-        duration: lessonDuration,
-        quizDuration: quizJson.duration,
-        totalMarks: quizJson.totalMarks,
-        passingMarks: quizJson.passingMarks,
-        quizzes: quizJson.questions
-      })
-    }
-
-    // 4️⃣ Generate Summary
-    const summaryJson = await generateValidJson(
-      `
+function getSummaryPrompt (topic: string) {
+  return `
 Generate a concise course summary in valid JSON format:
 {
   "overview": "Overview...",
@@ -257,30 +346,22 @@ Generate a concise course summary in valid JSON format:
   "skillsGained": ["Skill1", "Skill2"],
   "nextSteps": ["Next1", "Next2"]
 }
-4-6 items in each list. Course Title: "${prompt}"
-`,
-      model
-    )
+4-6 items in each list. Course Title: "${topic}"
+`
+}
 
-    console.log('Summary Generated', summaryJson)
-
-    // 5️⃣ Generate KeyPoints
-    const keyPointJson = await generateValidJson(
-      `
+function getKeyPointsPrompt (topic: string) {
+  return `
 Generate key points in valid JSON:
 [
   { "category": "Category Name", "points": ["Point1", "Point2"] }
 ]
-3-4 categories, 4-6 points each. Course Title: "${prompt}"
-`,
-      model
-    )
+3-4 categories, 4-6 points each. Course Title: "${topic}"
+`
+}
 
-    console.log('keypoint Generated', keyPointJson)
-
-    // 6️⃣ Generate Analytics
-    const analyticsJson = await generateValidJson(
-      `
+function getAnalyticsPrompt (topic: string) {
+  return `
 Generate course analytics in valid JSON:
 {
   "timeSpentTotal": float,
@@ -294,120 +375,6 @@ Generate course analytics in valid JSON:
   "quizzesCompleted": integer,
   "totalLessons": integer
 }
-Course Title: "${prompt}"
-`,
-      model
-    )
-    console.log('Anaylytics Generated', analyticsJson)
-
-    // 7️⃣ Save to Database
-    const course = await db.course.create({
-      data: {
-        title: syllabusJson.title,
-        description: syllabusJson.description,
-        user: { connect: { id: userId } },
-        lessons: {
-          create: lessons.map((lessonData, idx) => ({
-            title: lessonData.title,
-            description: lessonData.description,
-            duration: lessonData.duration,
-            order: idx,
-            contentBlocks: {
-              create: lessonData.contentBlocks.map(
-                (block: any, blockIdx: number) => {
-                  const typeUpper = block.type.toUpperCase() as ContentType
-                  if (!Object.values(ContentType).includes(typeUpper)) {
-                    throw new Error(`Invalid content block type: ${block.type}`)
-                  }
-
-                  return {
-                    order: block.order || blockIdx + 1,
-                    type: typeUpper, // ✅ fixed here
-                    code:
-                      typeUpper === 'CODE' ? String(block.content) : undefined,
-                    math:
-                      typeUpper === 'MATH' ? String(block.content) : undefined,
-                    graph: typeUpper === 'GRAPH' ? block.content : undefined,
-                    text:
-                      typeUpper === 'TEXT' ? String(block.content) : undefined
-                  }
-                }
-              )
-            },
-            quizz: {
-              create: {
-                title: `${lessonData.title} Quiz`,
-                duration: lessonData.quizDuration,
-                totalMarks: lessonData.totalMarks,
-                passingMarks: lessonData.passingMarks,
-                isCompleted: false,
-                gainedMarks: 0,
-                timeTaken: 0,
-                questions: {
-                  create: lessonData.quizzes.map((q: any) => ({
-                    question: q.question,
-                    type: q.type,
-                    number: q.number,
-                    options: q.options || [],
-                    marks: q.marks || 5,
-                    correctAnswers: q.correctAnswers || [],
-                    explanation: q.explanation || '',
-                    rubric: q.rubric || []
-                  }))
-                }
-              }
-            }
-          }))
-        },
-        summary: {
-          create: {
-            overview: summaryJson.overview,
-            whatYouLearned: summaryJson.whatYouLearned,
-            skillsGained: summaryJson.skillsGained,
-            nextSteps: summaryJson.nextSteps
-          }
-        },
-        keyPoints: {
-          create: keyPointJson.map((kp: any) => ({
-            category: kp.category,
-            points: kp.points
-          }))
-        },
-        analytics: {
-          create: {
-            timeSpentTotal: analyticsJson.timeSpentTotal,
-            timeSpentLessons: analyticsJson.timeSpentLessons,
-            timeSpentQuizzes: analyticsJson.timeSpentQuizzes,
-            averageScore: analyticsJson.averageScore,
-            totalQuizzes: analyticsJson.totalQuizzes,
-            passedQuizzes: analyticsJson.passedQuizzes,
-            grade: analyticsJson.grade,
-            lessonsCompleted: analyticsJson.lessonsCompleted,
-            quizzesCompleted: analyticsJson.quizzesCompleted,
-            totalLessons: analyticsJson.totalLessons
-          }
-        }
-      },
-      include: {
-        lessons: {
-          include: {
-            contentBlocks: true,
-            quizz: { include: { questions: true } }
-          }
-        },
-        summary: true,
-        keyPoints: true,
-        analytics: true
-      }
-    })
-
-    return NextResponse.json({ id: course.id, course })
-  } catch (error) {
-    console.error(error)
-    return NextResponse.json(
-      { error: 'Failed to generate course' },
-      { status: 500 }
-    )
-  }
+Course Title: "${topic}"
+`
 }
-

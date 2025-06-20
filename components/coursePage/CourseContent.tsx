@@ -1,14 +1,16 @@
 import { Course, Lesson } from '@/lib/types'
 import {
-  BookOpen,
+  Check,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
   Clock,
+  Copy,
   Rocket,
   Sparkles
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
@@ -17,14 +19,10 @@ import { Button } from '../ui/button'
 import { Card, CardContent } from '../ui/card'
 import { QuizComponent } from './quiz-component'
 
+import { motion } from 'framer-motion'
 import 'highlight.js/styles/github-dark.css'
-import { ComponentProps } from 'react'
-import rehypeMathjax from 'rehype-mathjax'
-import CourseAnalytics from './CourseAnalytics'
-import CourseComplete from './CourseComplete'
-import CourseKeyPoint from './CourseKeyPoint'
-import CourseSummary from './CourseSummary'
-import { CopyBlock, dracula } from 'react-code-blocks'
+import { ComponentProps, useState } from 'react'
+import SyntaxHighlighter from 'react-syntax-highlighter'
 import {
   CartesianGrid,
   Line,
@@ -34,7 +32,11 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
-import { motion } from 'framer-motion'
+import rehypeMathjax from 'rehype-mathjax'
+import CourseAnalytics from './CourseAnalytics'
+import CourseComplete from './CourseComplete'
+import CourseKeyPoint from './CourseKeyPoint'
+import CourseSummary from './CourseSummary'
 
 interface CodeProps extends ComponentProps<'code'> {
   inline?: boolean
@@ -78,8 +80,7 @@ const CourseContent = ({
   showAnalytics: boolean
   showSummary: boolean
 }) => {
-  console.log(course.lessons)
-  console.log(selectedLesson)
+  const [copied, setCopied] = useState(false)
 
   return (
     <div className='lg:col-span-3'>
@@ -164,7 +165,7 @@ const CourseContent = ({
                           return (
                             <motion.div
                               key={block.id}
-                              className='rounded-xl overflow-hidden'
+                              className='relative rounded-xl overflow-hidden text-sm'
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{
@@ -172,14 +173,39 @@ const CourseContent = ({
                                 delay: block.order * 0.1
                               }}
                             >
-                              <CopyBlock
-                                text={block.code || ''}
-                                language='javascript' // ⚠️ Optionally, extract language from code blocks if you want dynamic detection
+                              {/* Copy Button */}
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    block.code || ''
+                                  )
+                                  setCopied(true)
+                                  setTimeout(() => setCopied(false), 2000)
+                                }}
+                                className='absolute top-2 right-2 z-10 rounded bg-primary px-2 py-1 text-xs text-white hover:bg-primary/80 transition'
+                              >
+                                {copied ? (
+                                  <Check className='h-4 w-4' />
+                                ) : (
+                                  <Copy className='h-4 w-4' />
+                                )}
+                              </button>
+
+                              <SyntaxHighlighter
+                                language={'plaintext'}
+                                style={vscDarkPlus}
                                 showLineNumbers
                                 wrapLongLines
-                                theme={dracula}
-                                codeBlock
-                              />
+                                customStyle={{
+                                  background: '#1e1e1e',
+                                  fontSize: '0.875rem',
+                                  padding: '1rem',
+                                  borderRadius: '0.75rem'
+                                }}
+                                lineNumberStyle={{ color: '#6a9955' }}
+                              >
+                                {block.code || ''}
+                              </SyntaxHighlighter>
                             </motion.div>
                           )
 
@@ -229,7 +255,6 @@ const CourseContent = ({
                         const prevLesson = course.lessons.find(
                           l => l.order === selectedLesson.order - 1
                         )
-                        console.log(prevLesson)
                         if (prevLesson) setSelectedLesson(prevLesson)
                       }
                     }}

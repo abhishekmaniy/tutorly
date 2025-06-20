@@ -30,6 +30,7 @@ export type Lesson = {
   description: string
   order: number
   duration: string
+  timeTaken: number
   isCompleted: boolean
   courseId: string
   course?: Course
