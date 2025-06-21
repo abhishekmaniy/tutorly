@@ -50,8 +50,10 @@ const CourseContent = ({
   selectedLesson,
   completedQuizzes,
   courseCompleted,
+  setCourseCompleted,
   setCompletedLessons,
   completedLessons,
+  setShowSummary,
   analyticsData,
   setSelectedLesson,
   setSelectedQuiz,
@@ -63,6 +65,8 @@ const CourseContent = ({
   handleLessonComplete
 }: {
   course: Course
+  setShowSummary: any
+  setCourseCompleted: any
   handleLessonComplete: any
   renderLessonContent: any
   setShowAnalytics: any
@@ -82,11 +86,28 @@ const CourseContent = ({
 }) => {
   const [copied, setCopied] = useState(false)
 
+  const handleStartLearning = () => {
+    if (!course) return
+
+    const sortedLessons = [...course.lessons].sort((a, b) => a.order - b.order)
+
+    const nextLesson = sortedLessons.find(
+      lesson => !completedLessons.includes(lesson.id)
+    )
+
+    if (nextLesson) {
+      setSelectedLesson(nextLesson)
+      setSelectedQuiz(null)
+    } else {
+      setShowSummary(true)
+    }
+  }
+
   return (
     <div className='lg:col-span-3'>
       <Card className='h-full flex flex-col'>
-        <div className='p-8 flex-1 overflow-y-auto'>
-          <CardContent className='p-8 flex-1 overflow-y-auto '>
+        <div className='p-8 flex-1 overflow-y-auto scrollbar-custom'>
+          <CardContent className='p-8 flex-1 overflow-y-auto scrollbar-custom'>
             {selectedLesson?.order! >= 0 && (
               <div className='prose prose-slate dark:prose-invert max-w-none'>
                 <div className='flex items-center justify-between mb-6'>
@@ -298,6 +319,10 @@ const CourseContent = ({
 
             {selectedQuiz && (
               <QuizComponent
+                handleStartLearning={handleStartLearning}
+                setSelectedLesson={setSelectedLesson}
+                setSelectedQuiz={setSelectedQuiz}
+                setShowSummary={setShowSummary}
                 course={course}
                 lessonId={selectedQuiz}
                 onComplete={() => handleQuizComplete(selectedQuiz)}
@@ -319,6 +344,7 @@ const CourseContent = ({
 
             {courseCompleted && (
               <CourseComplete
+                setCourseComplete={setCourseCompleted}
                 analyticsData={analyticsData}
                 setShowAnalytics={setShowAnalytics}
               />
@@ -359,7 +385,7 @@ const CourseContent = ({
                   </p>
 
                   <Button
-                    onClick={() => setSelectedLesson(course?.lessons[0])}
+                    onClick={() => handleStartLearning()}
                     size='lg'
                     className='group'
                   >

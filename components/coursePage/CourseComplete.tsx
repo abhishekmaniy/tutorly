@@ -2,8 +2,21 @@ import { Award, Clock, Target, Trophy } from 'lucide-react'
 import React from 'react'
 import { Card, CardContent } from '../ui/card'
 import { Button } from '../ui/button'
+import { Course } from '@/lib/types'
 
-const CourseComplete = ({analyticsData , setShowAnalytics }: { analyticsData: any , setShowAnalytics:any }) => {
+const CourseComplete = ({
+  analyticsData,
+  setShowAnalytics,
+  setCourseComplete,
+  
+}: {
+  analyticsData: any
+  setCourseComplete:any
+  setShowAnalytics: any
+}) => {
+
+
+
   return (
     <div>
       <div className='text-center py-12'>
@@ -19,7 +32,7 @@ const CourseComplete = ({analyticsData , setShowAnalytics }: { analyticsData: an
               <Clock className='mx-auto mb-2 h-8 w-8 text-primary' />
               <h3 className='font-semibold'>Time Invested</h3>
               <p className='text-2xl font-bold'>
-                {analyticsData.timeSpent.total} hours
+                {analyticsData.timeSpent.total} Minutes
               </p>
             </CardContent>
           </Card>
@@ -51,7 +64,10 @@ const CourseComplete = ({analyticsData , setShowAnalytics }: { analyticsData: an
           <Button
             variant='outline'
             size='lg'
-            onClick={() => setShowAnalytics(true)}
+            onClick={() => {
+              setShowAnalytics(true)
+              setCourseComplete(false)
+            }}
           >
             View Detailed Analytics
           </Button>

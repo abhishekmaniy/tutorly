@@ -22,7 +22,7 @@ export const POST = async (req: NextRequest) => {
 
     const updatedLesson = await db.lesson.update({
       where: { id: lessonId },
-      data: { isCompleted: true, timeTaken }
+      data: { isCompleted: true, timeTaken, completedAt: new Date() }
     })
 
     return NextResponse.json({

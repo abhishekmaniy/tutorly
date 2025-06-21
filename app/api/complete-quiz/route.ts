@@ -135,7 +135,8 @@ You are acting as an exam evaluator for descriptive answers. Follow these rules 
         data: {
           isCompleted: true,
           gainedMarks,
-          timeTaken
+          timeTaken,
+          completedAt:new Date()
         }
       }),
       ...updatedQuestions.map(q =>

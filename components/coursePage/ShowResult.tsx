@@ -12,7 +12,8 @@ const ShowResult = ({
   timeSpent,
   answers,
   resetQuiz,
-  onComplete
+  onComplete,
+  handleContinueLearning
 }: {
   score: number
   quiz: Quiz
@@ -20,6 +21,7 @@ const ShowResult = ({
   answers: Record<string, any>
   resetQuiz: any
   onComplete: any
+  handleContinueLearning:any
 }) => {
   const getGrade = (score: number, total: number) => {
     const percentage = (score / total) * 100
@@ -117,7 +119,7 @@ const ShowResult = ({
         <Button onClick={resetQuiz} variant='outline'>
           Retake Quiz
         </Button>
-        <Button onClick={onComplete}>Continue Learning</Button>
+        <Button onClick={ handleContinueLearning}>Continue Learning</Button>
       </div>
     </div>
   )

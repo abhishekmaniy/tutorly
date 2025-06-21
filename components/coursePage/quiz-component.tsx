@@ -15,31 +15,46 @@ import { Progress } from '@/components/ui/progress'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import { Course } from '@/lib/types'
+import { useStore } from '@/store/store'
 import axios from 'axios'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { motion } from 'framer-motion'
+import {
+  AlertCircle,
+  Ban,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  RefreshCcw
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import ShowResult from './ShowResult'
-import { useStore } from '@/store/store'
-import { AlertCircle, Ban, RefreshCcw, CheckCircle2, Play } from 'lucide-react'
-import { motion } from 'framer-motion'
 
 interface QuizComponentProps {
   lessonId: string
   onComplete: () => void
   course: Course
+  setSelectedLesson: any
+  setShowSummary: any
+  setSelectedQuiz: any
+  handleStartLearning: any
 }
 
 export function QuizComponent ({
+  setSelectedLesson,
   lessonId,
   onComplete,
+  handleStartLearning,
+  setSelectedQuiz,
+  setShowSummary,
   course
 }: QuizComponentProps) {
   const lesson = course.lessons.find(lesson => lesson.id === lessonId)
   const quiz = lesson?.quizz
 
-  console.log(course)
-
-  console.log(quiz?.isCompleted)
+  const handleContinueLearning = () => {
+    handleStartLearning()
+  }
 
   const [showResults, setShowResults] = useState(quiz?.isCompleted || false)
   const [score, setScore] = useState(quiz?.gainedMarks || 0)
@@ -115,6 +130,7 @@ export function QuizComponent ({
           setScore(0)
           setTimeSpent(0)
         }}
+        handleContinueLearning={handleContinueLearning}
         onComplete={onComplete}
       />
     )
@@ -146,7 +162,7 @@ export function QuizComponent ({
       quizId: quiz?.id,
       courseId: course?.id,
       timeTaken,
-      answers
+      answers,
     })
 
     const updatedQuiz = response.data.quiz
@@ -180,6 +196,7 @@ export function QuizComponent ({
   if (showResults) {
     return (
       <ShowResult
+        handleContinueLearning={handleContinueLearning}
         score={score}
         quiz={quiz!}
         timeSpent={timeSpent}

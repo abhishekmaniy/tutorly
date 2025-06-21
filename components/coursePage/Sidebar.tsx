@@ -40,44 +40,42 @@ interface SidebarProps {
   quizzesOpen: boolean
   completedLessons: string[]
   completedQuizzes: string[]
-  courseCompleted: boolean
   showSummary: boolean
   showKeyPoints: boolean
   showAnalytics: boolean
   selectedQuiz: string | null
   setLessonsOpen: (open: boolean) => void
   setSelectedLesson: any
+  courseCompleted: boolean
   setSelectedQuiz: any
   setShowSummary: (show: boolean) => void
   setShowKeyPoints: (show: boolean) => void
   setShowAnalytics: (show: boolean) => void
   setQuizzesOpen: (open: boolean) => void
-  setCourseCompleted: (completed: boolean) => void
-  checkCourseCompletion: () => boolean
+  setCourseCompleted: any
 }
 
 const Sidebar = ({
   course,
   progress,
   lessonsOpen,
+  courseCompleted,
   selectedLesson,
   quizzesOpen,
   completedLessons,
   completedQuizzes,
-  courseCompleted,
   showSummary,
   showKeyPoints,
   showAnalytics,
   selectedQuiz,
   setLessonsOpen,
   setSelectedLesson,
+  setCourseCompleted,
   setSelectedQuiz,
   setShowSummary,
   setShowKeyPoints,
   setShowAnalytics,
-  setQuizzesOpen,
-  setCourseCompleted,
-  checkCourseCompletion
+  setQuizzesOpen
 }: SidebarProps) => {
   if (!course) {
     return (
@@ -154,6 +152,7 @@ const Sidebar = ({
                       setShowSummary(false)
                       setShowKeyPoints(false)
                       setShowAnalytics(false)
+                      setCourseCompleted(false)
                     }}
                   >
                     <div className='flex items-center space-x-3 w-full'>
@@ -209,6 +208,7 @@ const Sidebar = ({
                       setShowSummary(false)
                       setShowKeyPoints(false)
                       setShowAnalytics(false)
+                      setCourseCompleted(false)
                     }}
                   >
                     <div className='flex items-center space-x-3 w-full'>
@@ -247,8 +247,9 @@ const Sidebar = ({
                 setShowSummary(true)
                 setShowKeyPoints(false)
                 setShowAnalytics(false)
-                setSelectedLesson(null) // ✅ Fix here
+                setSelectedLesson(null)
                 setSelectedQuiz(null)
+                setCourseCompleted(false)
               }}
             >
               <Target className='mr-3 h-5 w-5' />
@@ -265,8 +266,9 @@ const Sidebar = ({
                 setShowKeyPoints(true)
                 setShowSummary(false)
                 setShowAnalytics(false)
-                setSelectedLesson(null) // ✅ Fix here
+                setSelectedLesson(null)
                 setSelectedQuiz(null)
+                setCourseCompleted(false)
               }}
             >
               <CheckCircle className='mr-3 h-5 w-5' />
@@ -283,8 +285,9 @@ const Sidebar = ({
                 setShowAnalytics(true)
                 setShowSummary(false)
                 setShowKeyPoints(false)
-                setSelectedLesson(null) // ✅ Fix here
+                setSelectedLesson(null)
                 setSelectedQuiz(null)
+                setCourseCompleted(false)
               }}
             >
               <BarChart className='mr-3 h-5 w-5' />
@@ -292,19 +295,27 @@ const Sidebar = ({
             </Button>
           </motion.div>
 
-          {/* Course Completion Section */}
-          {checkCourseCompletion() && !courseCompleted && (
-            <>
-              <Separator />
-              <Button
-                className='w-full bg-green-600 hover:bg-green-700'
-                onClick={() => setCourseCompleted(true)}
-              >
-                <Trophy className='mr-3 h-5 w-5' />
-                Complete Course
-              </Button>
-            </>
-          )}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Button
+              variant={courseCompleted ? 'secondary' : 'ghost'}
+              className='w-full justify-start'
+              onClick={() => {
+                setShowAnalytics(false)
+                setShowSummary(false)
+                setShowKeyPoints(false)
+                setSelectedLesson(null)
+                setSelectedQuiz(null)
+                setCourseCompleted(true)
+              }}
+            >
+              <CheckCircle className='mr-3 h-5 w-5' />
+              Mark as Completed
+            </Button>
+          </motion.div>
         </CardContent>
       </Card>
     </div>

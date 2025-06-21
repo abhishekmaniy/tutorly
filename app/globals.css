@@ -69,7 +69,12 @@
 }
 
 .gradient-bg {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 50%, hsl(262 83% 68%) 100%);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary)) 0%,
+    hsl(var(--primary)) 50%,
+    hsl(262 83% 68%) 100%
+  );
 }
 
 .animate-float {
@@ -100,3 +105,4 @@
   background-color: rgba(0, 0, 0, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.125);
 }
+

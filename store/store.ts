@@ -10,6 +10,7 @@ interface AppState {
   updateCourse: (updatedCourse: Course) => void
   markQuizAsCompleted: (courseId: string, quizId: string) => void
   updateQuizInCourse: (courseId: string, updatedQuiz: Quiz) => void
+  updateLessonProgress: (courseId: string, lessonId: string, timeTaken: number) => void
   reset: () => void
 }
 
@@ -64,6 +65,22 @@ export const useStore = create<AppState>(set => ({
             })
           }
         : null
+    })),
+
+  // ✅ NEW: updateLessonProgress
+  updateLessonProgress: (courseId, lessonId, timeTaken) =>
+    set(state => ({
+      courses: state.courses.map(course => {
+        if (course.id !== courseId) return course
+        return {
+          ...course,
+          lessons: course.lessons.map(lesson =>
+            lesson.id === lessonId
+              ? { ...lesson, isCompleted: true, timeTaken }
+              : lesson
+          )
+        }
+      })
     })),
   reset: () => set({ user: null, courses: [] })
 }))

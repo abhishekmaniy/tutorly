@@ -30,11 +30,12 @@ export type Lesson = {
   description: string
   order: number
   duration: string
+  completedAt: string | null
   timeTaken: number
   isCompleted: boolean
   courseId: string
   course?: Course
-  contentBlocks: ContentBlock[] 
+  contentBlocks: ContentBlock[]
   quizz: Quiz | null
 }
 
@@ -46,9 +47,8 @@ export type ContentBlock = {
   text?: string | null
   code?: string | null
   math?: string | null
-  graph?: any | null 
+  graph?: any | null
 }
-
 
 export type Quiz = {
   id: string
@@ -57,6 +57,7 @@ export type Quiz = {
   totalMarks: number
   passingMarks: number
   isCompleted: boolean
+  completedAt: string | null
   lessonId: string
   timeTaken: number
   lesson?: Lesson

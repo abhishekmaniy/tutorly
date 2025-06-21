@@ -13,7 +13,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Lesson } from '@/lib/types'
 import { ContentBlocksRenderer } from './ContentBlocksRenderer'
 
-export function ExpandableCardDemo ({ lessons }: { lessons: Lesson[] }) {
+export function ExpandableLessonCard ({ lessons }: { lessons: Lesson[] }) {
   const [active, setActive] = useState<Lesson | null>(null)
   const [lessonsOpen, setLessonsOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)

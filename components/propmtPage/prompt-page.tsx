@@ -1,35 +1,36 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { ThemeToggle } from '@/components/common/theme-toggle'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle
 } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
-import {
-  BookOpen,
-  Clock,
-  Sparkles,
-  ArrowRight,
-  History,
-  Loader2
-} from 'lucide-react'
-import { ThemeToggle } from '@/components/common/theme-toggle'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { Analytics, KeyPoint, Lesson, Quiz, Summary } from '@/lib/types'
+import { useStore } from '@/store/store'
 import { useAuth, UserButton } from '@clerk/nextjs'
 import axios from 'axios'
-import { useStore } from '@/store/store'
-import { Skeleton } from '../ui/skeleton'
 import { motion, Variants } from 'framer-motion'
-import { ExpandableCardDemo } from './ExpandableCard'
-import { Analytics, KeyPoint, Lesson, Quiz, Summary } from '@/lib/types'
+import {
+  ArrowRight,
+  BookOpen,
+  Clock,
+  History,
+  Loader2,
+  Sparkles
+} from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+import { Skeleton } from '../ui/skeleton'
+import {
+  ExpandableLessonCard
+} from './ExpandableLessonCard'
 import { ExpandableQuizCard } from './ExpandableQuizCard'
 import { ExpandableSummaryCard } from './ExpandableSummary'
 
@@ -264,15 +265,17 @@ export function PromptPage () {
   return (
     <div className='h-screen overflow-hidden bg-background'>
       {/* Top Navigation */}
-      <nav className='sticky top-0 z-50 border-b bg-background'>
+      <nav className='sticky top-0 z-50 bg-background/80 backdrop-blur border-b'>
         <div className='container mx-auto px-4'>
           <div className='flex h-16 items-center justify-between'>
-            <Link href='/' className='flex items-center space-x-2'>
-              <BookOpen className='h-8 w-8 text-primary' />
-              <span className='text-2xl font-bold'>Tutorly</span>
+            <Link href='/' className='flex items-center gap-2'>
+              <BookOpen className='h-6 w-6 text-primary' />
+              <span className='text-xl font-semibold tracking-tight'>
+                Tutorly
+              </span>
             </Link>
 
-            <div className='flex items-center space-x-4'>
+            <div className='flex items-center gap-2'>
               <Link href='/history'>
                 <Button variant='outline' size='sm'>
                   <History className='mr-2 h-4 w-4' />
@@ -363,13 +366,13 @@ export function PromptPage () {
 
           {/* Main Content - Course Generation */}
           {isGenerating ? (
-            <div className='absolute left-0 right-0 top-16 bottom-0 z-10 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm p-6 rounded-lg'>
+            <div className='fixed inset-0 z-40 pt-16 flex flex-col items-center justify-start bg-background/80 backdrop-blur-sm overflow-y-auto'>
               {/* Animated Icon */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
-                className='mb-4 text-primary'
+                className='mt-6 mb-4 text-primary'
               >
                 <Sparkles size={48} />
               </motion.div>
@@ -399,19 +402,21 @@ export function PromptPage () {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.6 }}
-                className='w-full max-w-lg'
+                className='w-full max-w-lg space-y-4 px-4'
               >
                 {generationProgress.syllabus && (
                   <Card className='mb-4'>
                     <CardHeader>
-                      <div className='flex items-center gap-2 mb-2 text-primary'>
+                      <div className='flex items-start gap-2 text-primary'>
                         <BookOpen size={20} />
-                        <CardTitle className='text-xl'>
-                          {generationProgress.syllabus.title}
-                        </CardTitle>
-                        <CardDescription>
-                          {generationProgress.syllabus.description}
-                        </CardDescription>
+                        <div>
+                          <CardTitle className='text-xl'>
+                            {generationProgress.syllabus.title}
+                          </CardTitle>
+                          <CardDescription className='text-muted-foreground'>
+                            {generationProgress.syllabus.description}
+                          </CardDescription>
+                        </div>
                       </div>
                     </CardHeader>
                   </Card>
@@ -419,9 +424,11 @@ export function PromptPage () {
 
                 {generationProgress.lessons.length > 0 && (
                   <Card>
-                    <CardHeader></CardHeader>
-                    <CardContent className='overflow-y-auto flex-1 pr-2'>
-                      <ExpandableCardDemo
+                    <CardHeader>
+                      <CardTitle>Lessons</CardTitle>
+                    </CardHeader>
+                    <CardContent className='overflow-y-auto max-h-[400px] pr-2'>
+                      <ExpandableLessonCard
                         lessons={generationProgress.lessons}
                       />
                     </CardContent>
@@ -430,22 +437,27 @@ export function PromptPage () {
 
                 {generationProgress.quizzes.length > 0 && (
                   <Card>
-                    <CardHeader></CardHeader>
-                    <CardContent className='overflow-y-auto flex-1 pr-2'>
+                    <CardHeader>
+                      <CardTitle>Quizzes</CardTitle>
+                    </CardHeader>
+                    <CardContent className='overflow-y-auto max-h-[400px] pr-2'>
                       <ExpandableQuizCard quizes={generationProgress.quizzes} />
                     </CardContent>
                   </Card>
                 )}
 
-                 {generationProgress.summary && (
+                {generationProgress.summary && (
                   <Card>
-                    <CardHeader></CardHeader>
-                    <CardContent className='overflow-y-auto flex-1 pr-2'>
-                      <ExpandableSummaryCard summary={generationProgress.summary} />
+                    <CardHeader>
+                      <CardTitle>Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent className='overflow-y-auto max-h-[400px] pr-2'>
+                      <ExpandableSummaryCard
+                        summary={generationProgress.summary}
+                      />
                     </CardContent>
                   </Card>
                 )}
-
               </motion.div>
 
               {/* Loading Spinner */}
