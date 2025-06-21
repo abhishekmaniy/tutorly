@@ -36,7 +36,7 @@ const AuthCallbackPage = () => {
     return (
       <div className="flex items-center justify-center min-h-screen w-full bg-background px-4">
         <div className="w-full max-w-md">
-          <SignIn routing="hash" fallbackRedirectUrl="/" />
+          <SignIn routing="hash" fallbackRedirectUrl="/sign-in" />
         </div>
       </div>
     )

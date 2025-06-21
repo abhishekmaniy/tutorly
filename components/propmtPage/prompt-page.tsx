@@ -29,6 +29,9 @@ import { useStore } from '@/store/store'
 import { Skeleton } from '../ui/skeleton'
 import { motion, Variants } from 'framer-motion'
 import { ExpandableCardDemo } from './ExpandableCard'
+import { Analytics, KeyPoint, Lesson, Quiz, Summary } from '@/lib/types'
+import { ExpandableQuizCard } from './ExpandableQuizCard'
+import { ExpandableSummaryCard } from './ExpandableSummary'
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -51,11 +54,25 @@ const cardVariants = {
 
 export function PromptPage () {
   const [prompt, setPrompt] = useState('')
-  const [isGenerating, setIsGenerating] = useState(true)
+  const [isGenerating, setIsGenerating] = useState(false)
   const [streamMessages, setStreamMessages] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isMounted, setIsMounted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [generationProgress, setGenerationProgress] = useState<{
+    syllabus?: any
+    lessons: Lesson[]
+    quizzes: Quiz[]
+    summary?: Summary
+    keyPoints?: KeyPoint[]
+    analytics?: Analytics
+    currentStep?: string
+  }>({
+    lessons: [],
+    quizzes: []
+  })
+
+  console.log('generationProgress', generationProgress)
 
   const router = useRouter()
   const { getToken, userId } = useAuth()
@@ -131,11 +148,81 @@ export function PromptPage () {
         buffer = lines.pop() || '' // Save incomplete line in buffer
 
         for (const line of lines) {
-          if (line.startsWith('id:')) {
-            courseId = line.replace('id:', '').trim()
-          } else if (line.startsWith('data:')) {
+          if (line.startsWith('data:')) {
             const msg = line.replace('data:', '').trim()
-            if (msg) setStreamMessages(prev => [...prev, msg])
+            if (!msg) return
+
+            try {
+              const parsed = JSON.parse(msg)
+              setGenerationProgress(prev => {
+                if (
+                  parsed.step === 'syllabus' &&
+                  parsed.status === 'completed'
+                ) {
+                  return {
+                    ...prev,
+                    syllabus: parsed.data,
+                    currentStep: 'syllabus'
+                  }
+                }
+                if (parsed.step === 'lesson') {
+                  return {
+                    ...prev,
+                    lessons: [...prev.lessons, parsed.data],
+                    currentStep: 'lesson'
+                  }
+                }
+                if (parsed.step === 'quiz') {
+                  return {
+                    ...prev,
+                    quizzes: [...prev.quizzes, parsed.data],
+                    currentStep: 'quiz'
+                  }
+                }
+                if (parsed.step === 'summary') {
+                  return {
+                    ...prev,
+                    summary: parsed.data,
+                    currentStep: 'summary'
+                  }
+                }
+                if (parsed.step === 'keyPoints') {
+                  return {
+                    ...prev,
+                    keyPoints: parsed.data,
+                    currentStep: 'keyPoints'
+                  }
+                }
+                if (parsed.step === 'analytics') {
+                  return {
+                    ...prev,
+                    analytics: parsed.data,
+                    currentStep: 'analytics'
+                  }
+                }
+                if (parsed.step === 'contentBlock') {
+                  return {
+                    ...prev,
+                    lessons: prev.lessons.map(lesson =>
+                      lesson.title === parsed.lessonTitle
+                        ? {
+                            ...lesson,
+                            contentBlocks: [
+                              ...(lesson.contentBlocks || []),
+                              parsed.contentBlock
+                            ]
+                          }
+                        : lesson
+                    ),
+                    currentStep: 'contentBlock'
+                  }
+                }
+
+                return prev
+              })
+            } catch {
+              setStreamMessages(prev => [...prev, msg])
+            }
           }
         }
 
@@ -263,7 +350,11 @@ export function PromptPage () {
                       </Link>
                     ))
                   ) : (
-                    <div>No Course In Recent</div>
+                    <Card>
+                      <CardContent className='text-gray-500 justify-center items-center '>
+                        No Course Generated Yet!
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               </Card>
@@ -310,26 +401,51 @@ export function PromptPage () {
                 transition={{ duration: 0.6, delay: 0.6 }}
                 className='w-full max-w-lg'
               >
-                <Card>
-                  <CardHeader>
-                    <div className='flex items-center gap-2 mb-2 text-primary'>
-                      <BookOpen size={20} />
-                      <CardTitle className='text-xl'>
-                        Introduction to Digital Marketing
-                      </CardTitle>
-                    </div>
-                    <CardDescription>
-                      Comprehensive course on digital marketing with quizzes,
-                      summaries & analytics.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="overflow-y-auto flex-1 pr-2">
-                    <ExpandableCardDemo />
-                    <ExpandableCardDemo />
-                    <ExpandableCardDemo />
-                    <ExpandableCardDemo />
-                  </CardContent>
-                </Card>
+                {generationProgress.syllabus && (
+                  <Card className='mb-4'>
+                    <CardHeader>
+                      <div className='flex items-center gap-2 mb-2 text-primary'>
+                        <BookOpen size={20} />
+                        <CardTitle className='text-xl'>
+                          {generationProgress.syllabus.title}
+                        </CardTitle>
+                        <CardDescription>
+                          {generationProgress.syllabus.description}
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                )}
+
+                {generationProgress.lessons.length > 0 && (
+                  <Card>
+                    <CardHeader></CardHeader>
+                    <CardContent className='overflow-y-auto flex-1 pr-2'>
+                      <ExpandableCardDemo
+                        lessons={generationProgress.lessons}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {generationProgress.quizzes.length > 0 && (
+                  <Card>
+                    <CardHeader></CardHeader>
+                    <CardContent className='overflow-y-auto flex-1 pr-2'>
+                      <ExpandableQuizCard quizes={generationProgress.quizzes} />
+                    </CardContent>
+                  </Card>
+                )}
+
+                 {generationProgress.summary && (
+                  <Card>
+                    <CardHeader></CardHeader>
+                    <CardContent className='overflow-y-auto flex-1 pr-2'>
+                      <ExpandableSummaryCard summary={generationProgress.summary} />
+                    </CardContent>
+                  </Card>
+                )}
+
               </motion.div>
 
               {/* Loading Spinner */}

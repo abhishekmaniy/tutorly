@@ -1,5 +1,4 @@
 // app/api/generate-course/route.ts
-
 import { db } from '@/lib/db'
 import { getAuth } from '@clerk/nextjs/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
@@ -25,6 +24,7 @@ async function generateValidJsonWithRetries (
         .replace(/```json|```/g, '')
         .replace(/\r/g, '')
         .replace(/\u0000/g, '')
+        .replace(/^[^{\[]+/, '')
         .trim()
 
       text = text.replace(/[\x00-\x1F\x7F]/g, (c: string) =>
@@ -36,7 +36,6 @@ async function generateValidJsonWithRetries (
       console.warn(`Attempt ${attempt} failed to generate valid JSON:`, err)
       if (attempt === maxRetries)
         throw new Error(`Failed after ${maxRetries} attempts.`)
-      // ⏱️ Add delay between retries to avoid rate-limiting:
       await new Promise(res => setTimeout(res, 1000 * attempt))
     }
   }
@@ -53,9 +52,10 @@ export async function POST (req: NextRequest) {
   const stream = new ReadableStream({
     async start (controller) {
       try {
-        streamData(controller, '⏳ Starting generation...')
-
-        // 1️⃣ Generate Syllabus
+        streamData(
+          controller,
+          JSON.stringify({ step: 'syllabus', status: 'started' })
+        )
         streamData(controller, '📚 Generating syllabus...')
         const syllabusJson = await generateValidJsonWithRetries(
           getSyllabusPrompt(prompt),
@@ -63,7 +63,11 @@ export async function POST (req: NextRequest) {
         )
         streamData(
           controller,
-          `✅ Syllabus generated with ${syllabusJson.lessons.length} lessons.`
+          JSON.stringify({
+            step: 'syllabus',
+            status: 'completed',
+            data: syllabusJson
+          })
         )
 
         const lessons = []
@@ -71,30 +75,74 @@ export async function POST (req: NextRequest) {
         for (const lessonObj of syllabusJson.lessons) {
           const lessonTitle = lessonObj.title
           const lessonDuration = lessonObj.duration
-          streamData(controller, `📖 ${lessonTitle}`)
+
+          streamData(
+            controller,
+            JSON.stringify({
+              step: 'lesson',
+              status: 'started',
+              data: { title: lessonTitle }
+            })
+          )
 
           const context = await generateValidJsonWithRetries(
             getLessonContextPrompt(lessonTitle),
             model
           )
 
+          // 🎯 NEW → Generate *all* section content in ONE call
+          const sectionContent = await generateValidJsonWithRetries(
+            getAllSectionsContentPrompt(context),
+            model
+          )
+
           const allContentBlocks = []
-          for (const section of context.sections) {
-            streamData(controller, `📝 Section: ${section.title}`)
-            const sectionDetail = await generateValidJsonWithRetries(
-              getSectionContentPrompt(section, context),
-              model
-            )
-            for (const block of sectionDetail.contentBlocks) {
-              streamData(controller, `📦 ${block.type}: ${block.content}`)
+          for (const section of sectionContent.sections) {
+            for (const block of section.contentBlocks) {
+              let text = null,
+                code = null,
+                math = null,
+                graph = null
+              if (block.type === 'TEXT') text = block.content
+              if (block.type === 'CODE') code = block.content
+              if (block.type === 'MATH') math = block.content
+              if (block.type === 'GRAPH') graph = block.content
+
+              streamData(
+                controller,
+                JSON.stringify({
+                  step: 'contentBlock',
+                  lessonTitle,
+                  sectionTitle: section.title,
+                  contentBlock: {
+                    id: crypto.randomUUID(),
+                    order: block.order ?? 0,
+                    type: block.type,
+                    text,
+                    code,
+                    math,
+                    graph
+                  }
+                })
+              )
+
+              allContentBlocks.push(block)
             }
-            allContentBlocks.push(...sectionDetail.contentBlocks)
           }
 
           const quizJson = await generateValidJsonWithRetries(
             getQuizPrompt(lessonTitle, allContentBlocks),
             model
           )
+          streamData(
+            controller,
+            JSON.stringify({
+              step: 'quiz',
+              status: 'completed',
+              data: quizJson
+            })
+          )
+
           lessons.push({
             lessonTitle,
             lessonDuration,
@@ -104,26 +152,14 @@ export async function POST (req: NextRequest) {
           })
         }
 
-        streamData(controller, '🗂️ Generating summary...')
-        const summaryJson = await generateValidJsonWithRetries(
-          getSummaryPrompt(prompt),
-          model
-        )
-
-        streamData(controller, '🔑 Generating key points...')
-        const keyPointJson = await generateValidJsonWithRetries(
-          getKeyPointsPrompt(prompt),
-          model
-        )
-
-        streamData(controller, '📊 Generating analytics...')
-        const analyticsJson = await generateValidJsonWithRetries(
-          getAnalyticsPrompt(prompt),
+        // 🎯 NEW → Generate summary, key points & analytics in ONE call
+        streamData(controller, '🗂️ Generating post-course content...')
+        const postCourse = await generateValidJsonWithRetries(
+          getPostCourseDataPrompt(prompt),
           model
         )
 
         streamData(controller, '💾 Saving to database...')
-
         await db.course.create({
           data: {
             title: syllabusJson.title,
@@ -159,9 +195,9 @@ export async function POST (req: NextRequest) {
                 }
               }))
             },
-            summary: { create: summaryJson },
-            keyPoints: { create: keyPointJson },
-            analytics: { create: analyticsJson }
+            summary: { create: postCourse.summary },
+            keyPoints: { create: postCourse.keyPoints },
+            analytics: { create: postCourse.analytics }
           }
         })
 
@@ -185,26 +221,24 @@ export async function POST (req: NextRequest) {
   })
 }
 
+// 📘 PROMPT FUNCTIONS
+
 function getSyllabusPrompt (topic: string) {
   return `
 You are an expert educational content creator.
 
-Generate a **comprehensive syllabus** for the topic: **"${topic}"**.
+🎯 Your task is to generate a **comprehensive syllabus** for the course topic: "${topic}".
 
-## 📚 Requirements:
-- **Determine the appropriate number of lessons** required to thoroughly teach the topic **based on its depth, complexity, and the coverage required**.
-- The syllabus should be **as long or as short as necessary** to fully cover the topic.
-- For **broad or complex topics**, generate more lessons (e.g., 8, 10, or more).
-- For **narrow or introductory topics**, fewer lessons may be sufficient.
-- **DO NOT restrict the syllabus to a specific number of lessons like 4-6** → **generate as many as are logically required**.
-- Each lesson should focus on a **distinct subtopic or major concept** contributing to a clear learning progression.
-- **Ensure that the sequence of lessons builds understanding logically from start to finish.**
+⚠️ IMPORTANT INSTRUCTIONS:
+- Respond **ONLY with strict JSON**.
+- DO NOT include any explanation, introduction, or markdown (no '''json or ''').
+- The response MUST start **directly** with '{'.
+- NO preface such as "Here is..." or "Sure!".
 
-## 📦 JSON Format (Strict):
-Return **ONLY** a **valid JSON object** matching **this exact structure**:
+📚 Output JSON Format:
 {
   "title": "Course Title",
-  "description": "Concise description of the course in 1-2 sentences.",
+  "description": "Concise course description.",
   "lessons": [
     {
       "title": "Lesson Title",
@@ -213,81 +247,87 @@ Return **ONLY** a **valid JSON object** matching **this exact structure**:
   ]
 }
 
-## ✅ Rules:
-- **Lesson Titles** → Must be **clear, specific, and focused**.
-- **Lesson Durations** → Should reflect the expected depth and complexity of each lesson.
-  - Deep, complex lessons → Longer durations (e.g., '20 minutes', '30 minutes')
-  - Introductory or overview lessons → Shorter durations (e.g., '10 minutes', '15 minutes')
-- Avoid generic lesson names like "Introduction" unless truly necessary.
-- Ensure **logical sequence** of lessons, covering foundational concepts before advanced topics.
-- **No markdown. No links. No explanations outside JSON. Return ONLY the JSON object.**
-`
+Generate as many lessons as necessary for a complete learning journey. Make sure the **title** is compelling and the **description** clearly explains what the course covers.
+
+}`
 }
 
 function getLessonContextPrompt (lessonTitle: string) {
   return `
 You are an expert curriculum designer.
 
-Generate a **detailed outline** and context for a lesson titled **"${lessonTitle}"**. This should include:
+🎯 Your task is to generate the **lesson context** for the lesson titled: "${lessonTitle}".
 
-1️⃣ **Objective** → What will the learner achieve after completing the lesson?
+⚠️ IMPORTANT INSTRUCTIONS:
+- Respond **ONLY with strict JSON**.
+- DO NOT include any explanation, introduction, or markdown formatting (no '''json or ''').
+- The response MUST start **directly** with '{'.
+- DO NOT add phrases like "Here is..." or "Sure!".
 
-2️⃣ **Detailed Breakdown** → List 5 to 7 **key subtopics or sections** necessary to fully cover the lesson. Each should be phrased as a **short section heading** with **1-2 sentences description**.
-
-Return a JSON object:
-
+📚 Output JSON Format:
 {
   "title": "${lessonTitle}",
-  "objective": "Learning outcome in 1 sentence.",
+  "objective": "Clear learning objective for this lesson in ONE concise sentence.",
   "sections": [
     {
-      "title": "Section Heading",
-      "description": "1-2 sentence description of what this part will teach."
+      "title": "Descriptive Section Heading",
+      "description": "1-2 sentence description of what this section will cover."
     }
   ]
 }
 
-No explanation. Return ONLY JSON.
-`
+✅ Ensure that:
+- The **objective** describes the *learner’s outcome* clearly and concisely.
+- Each **section** logically contributes to achieving the objective.
+- Generate as many sections as required for a complete understanding of the lesson.
+
+- Each section should focus on ONE major subtopic or concept.
+- Make section titles engaging, actionable, or thought-provoking if suitable.
+
+  `
 }
 
-function getSectionContentPrompt (section: any, context: any) {
+function getAllSectionsContentPrompt (context: any) {
   return `
 You are an expert lesson content creator.
 
-Generate **detailed, structured lesson content blocks** for the section titled: "${section.title}"
-Context of the lesson: "${context.objective}"
-Section Description: "${section.description}"
+🎯 Your task is to generate **detailed educational content** for **all sections** of the lesson: "${context.title}"
 
-## 📦 Output Format
-Return ONLY a valid JSON object with this **EXACT** structure:
+📖 **Lesson Context**: "${context.objective}"
 
+⚠️ IMPORTANT INSTRUCTIONS:
+- Respond **ONLY with strict JSON**.
+- DO NOT include any introduction, explanation, or markdown formatting (no '''json or ''').
+- The response MUST start **directly** with '{'.
+- DO NOT include phrases like "Here is..." or "Sure!".
+
+📚 **Required JSON Format**:
 {
-  "title": "${section.title}",
-  "contentBlocks": [
+  "sections": [
     {
-      "type": "TEXT" | "CODE" | "MATH" | "GRAPH",
-      "content": "Detailed content here based on the type."
+      "title": "Section Title",
+      "contentBlocks": [
+        {
+          "type": "TEXT" | "CODE" | "MATH" | "GRAPH",
+          "content": "Detailed content here."
+        }
+      ]
     }
   ]
 }
 
-## 🏷️ Content Block Rules:
-- **type** → One of exactly: **"TEXT"**, **"CODE"**, **"MATH"**, or **"GRAPH"** (case-sensitive).
-- **content** →
-  - **TEXT** → Explanations, examples, and descriptions
-  - **CODE** → Generate ONLY if the topic **requires code to explain**. Otherwise, **DO NOT** generate CODE blocks unnecessarily.
-  - **MATH** → Mathematical equations or expressions when necessary
-  - **GRAPH** → JSON structure representing chart/graph data when appropriate
+✅ **Content Guidelines**:
+- Include **all sections** from the lesson context.
+- Each **section** should have multiple **contentBlocks** arranged in a **logical teaching order**.
+- Use **"TEXT"** for explanations, **"CODE"** for programming examples, **"MATH"** for formulas, and **"GRAPH"** for diagrams (describe in text what the graph should represent).
+- **Combine different types where appropriate** to enhance understanding (e.g., a "TEXT" explanation followed by a "CODE" or "MATH" block).
+- The content should **flow naturally** and progressively build the learner’s understanding.
 
-## ✅ Generation Rules:
-- Generate **CODE blocks ONLY if the topic specifically involves or benefits from code**. If not needed → **skip CODE blocks**.
-- Do **NOT** generate "CODE" blocks just to fill content. Include **TEXT**, **MATH**, or **GRAPH** as required.
-- Ensure **logical flow** matching the section description.
-- Use **TEXT** as the default if unsure.
-- Combine different block types logically where appropriate.
-- **NO extra fields or unknown "type" values. ONLY use "TEXT", "CODE", "MATH", or "GRAPH".**
-- **Return ONLY the JSON object**, without any markdown wrappers or additional explanation.
+- Make contentBlocks substantial and informative.
+- Use clear, instructional writing in "TEXT" blocks.
+- Ensure technical accuracy in "CODE" and "MATH" blocks.
+
+
 `
 }
 
@@ -295,86 +335,104 @@ function getQuizPrompt (lessonTitle: string, contentBlocks: any[]) {
   return `
 You are an expert quiz generator.
 
-Generate a **high-quality, comprehensive quiz** that tests the learner's understanding of the following lesson content **in depth**.
+🎯 Your task is to generate a **high-quality quiz** for the lesson: "${lessonTitle}".
 
-## 📘 Lesson Content (Reference for Quiz Generation):
+📖 **Lesson Content** (reference for generating questions): 
 ${JSON.stringify(contentBlocks)}
 
-## 📦 Output Format (Strict JSON):
-Return ONLY a **valid JSON object** matching this exact structure:
+⚠️ IMPORTANT INSTRUCTIONS:
+- Respond **ONLY with strict JSON**.
+- DO NOT include any explanation, introduction, or markdown formatting (no '''json or ''').
+- The response MUST start **directly** with '{'.
+- DO NOT include phrases like "Here is..." or "Sure!".
+
+📚 **Required JSON Format**:
 {
   "title": "Quiz for ${lessonTitle}",
-  "duration": "e.g., '10 minutes'",
+  "duration": "10 minutes",
   "totalMarks": 50,
   "passingMarks": 30,
-  "status": "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED",
+  "status": "NOT_STARTED",
   "questions": [
     {
-      "number": 1, // Sequential starting from 1
-      "question": "Detailed, clear question based on the lesson content above.",
+      "number": 1,
+      "question": "Clear, specific, and unambiguous question based strictly on the lesson content.",
       "type": "MCQ" | "MULTIPLE_SELECT" | "DESCRIPTIVE" | "TRUE_FALSE",
-      "options": ["Option1", "Option2"], // Optional for DESCRIPTIVE
+      "options": ["A", "B", "C", "D"],        // Required for MCQ & MULTIPLE_SELECT only
       "marks": 10,
-      "correctAnswers": ["Correct Answer(s)"], // Required for all except DESCRIPTIVE
-      "explanation": "Concise explanation of why this is the correct answer.",
-      "rubric": ["Point 1...", "Point 2..."] // Required for DESCRIPTIVE
+      "correctAnswers": ["A"],                // Required for all EXCEPT DESCRIPTIVE
+      "explanation": "Concise explanation of why the correct answer(s) is correct.",
+      "rubric": ["Point 1", "Point 2"]        // REQUIRED for DESCRIPTIVE questions only
     }
   ]
 }
 
-## ✅ Quiz Generation Requirements:
+✅ **Question Guidelines**:
+- Include a **balanced mix** of question types (**MCQ**, **MULTIPLE_SELECT**, **TRUE_FALSE**, and **DESCRIPTIVE** when appropriate).
+- Questions **must** directly relate to and test understanding of the provided lesson content.
+- **Ensure clarity**—avoid vague or ambiguous questions.
+- **For DESCRIPTIVE questions**, provide a **grading rubric** with key points that should be included in an excellent answer.
 
-- **Base questions directly on the provided lesson contentBlocks, especially CODE and MATH.**
-- Include **code-based questions asking learners to predict outputs, debug, or explain code.**
-- **MATH-based content → generate problems requiring solving or explanation.**
-- **At least 5 diverse questions**:
-  - Mix of **MCQ**, **MULTIPLE_SELECT**, **TRUE_FALSE**, and at least **1 DESCRIPTIVE** with rubric.
-- Ensure **totalMarks = sum of all question marks**.
-- Set **passingMarks ≈ 60% of totalMarks**.
-- Use **number** for sequential question numbering starting from 1.
-- **Do NOT repeat content unnecessarily.**
-- **No markdown. No links. No explanations outside JSON. Return ONLY the JSON object.**
+Generate enough questions to meaningfully assess the learner’s understanding of the lesson.
+ 
+- Include a mix of easy, moderate, and challenging questions.
+- Ensure no two questions test the exact same concept.
+- When using MCQs, avoid obviously incorrect distractor options.
+
+
 `
 }
 
-function getSummaryPrompt (topic: string) {
+function getPostCourseDataPrompt (topic: string) {
   return `
-Generate a concise course summary in valid JSON format:
+You are an expert educational analyst and instructional designer.
+
+🎯 Your task is to generate the **summary**, **key points**, and **analytics** for the course: "${topic}"
+
+⚠️ IMPORTANT INSTRUCTIONS:
+- Respond **ONLY with strict JSON**.
+- DO NOT include any introduction, explanation, or markdown formatting (no '''json or ''').
+- The response MUST start **directly** with '{'.
+- DO NOT include phrases like "Here is..." or "Sure!".
+
+📚 **Required JSON Format**:
 {
-  "overview": "Overview...",
-  "whatYouLearned": ["Item1", "Item2"],
-  "skillsGained": ["Skill1", "Skill2"],
-  "nextSteps": ["Next1", "Next2"]
-}
-4-6 items in each list. Course Title: "${topic}"
-`
+  "summary": {
+    "overview": "Concise overview of the course content and its purpose (2-3 sentences).",
+    "whatYouLearned": ["Key knowledge areas or concepts covered in the course."],
+    "skillsGained": ["Practical or conceptual skills the learner gained."],
+    "nextSteps": ["Recommended further topics, skills, or resources the learner should explore."]
+  },
+  "keyPoints": [
+    {
+      "category": "Category Name (e.g., Core Concepts, Best Practices, Tools Used)",
+      "points": ["Important point 1", "Important point 2", "Important point 3"]
+    }
+  ],
+  "analytics": {
+    "timeSpentTotal": float,           // Total time spent on the course in minutes
+    "timeSpentLessons": float,         // Time spent on lessons in minutes
+    "timeSpentQuizzes": float,         // Time spent on quizzes in minutes
+    "averageScore": float,             // Average quiz score percentage (0-100)
+    "totalQuizzes": integer,           // Total number of quizzes in the course
+    "passedQuizzes": integer,          // Number of quizzes successfully passed
+    "grade": "EXCELLENT" | "GOOD" | "AVERAGE" | "NEEDS_IMPROVEMENT", // Overall learner performance grade
+    "lessonsCompleted": integer,       // Number of lessons completed by the learner
+    "quizzesCompleted": integer,       // Number of quizzes completed by the learner
+    "totalLessons": integer            // Total number of lessons in the course
+  }
 }
 
-function getKeyPointsPrompt (topic: string) {
-  return `
-Generate key points in valid JSON:
-[
-  { "category": "Category Name", "points": ["Point1", "Point2"] }
-]
-3-4 categories, 4-6 points each. Course Title: "${topic}"
-`
-}
+✅ **Content Guidelines**:
+- The **overview** should provide a clear summary of what the course offered.
+- **whatYouLearned** should highlight major concepts and knowledge areas.
+- **skillsGained** should list *practical* abilities or understandings acquired.
+- **nextSteps** should guide the learner on *how to advance further* in this subject.
+- **keyPoints** should summarize the *essential takeaways* by category.
+- **analytics** should include **realistic, coherent numbers** representing learner engagement and performance.
 
-function getAnalyticsPrompt (topic: string) {
-  return `
-Generate course analytics in valid JSON:
-{
-  "timeSpentTotal": float,
-  "timeSpentLessons": float,
-  "timeSpentQuizzes": float,
-  "averageScore": float,
-  "totalQuizzes": integer,
-  "passedQuizzes": integer,
-  "grade": "EXCELLENT" | "GOOD" | "AVERAGE" | "NEEDS_IMPROVEMENT",
-  "lessonsCompleted": integer,
-  "quizzesCompleted": integer,
-  "totalLessons": integer
-}
-Course Title: "${topic}"
-`
+Respond with **complete** and **high-quality** content for each section.
+
+
+  `
 }

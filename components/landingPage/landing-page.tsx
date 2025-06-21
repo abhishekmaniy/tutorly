@@ -30,6 +30,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import { cubicBezier, easeOut, motion, Variants } from 'framer-motion'
+import { BackgroundLines } from '../ui/background-lines'
+import { CardSpotlight } from '../ui/card-spotlight'
 
 const containerVariants = {
   hidden: {},
@@ -209,12 +211,20 @@ export function LandingPage () {
     }
   ]
 
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
+
   return (
     <div className='min-h-screen bg-background'>
       <Navbar />
 
       {/* Hero Section */}
-      <section className='relative overflow-hidden py-20 lg:py-32'>
+      <BackgroundLines className='relative overflow-hidden py-20 lg:py-32'>
         <div className='absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-primary/5' />
 
         <div className='container relative mx-auto px-4'>
@@ -296,7 +306,7 @@ export function LandingPage () {
             delay: 1
           }}
         />
-      </section>
+      </BackgroundLines>
 
       {/* Features Section */}
       <section id='features' className='py-20'>
@@ -325,27 +335,34 @@ export function LandingPage () {
             viewport={{ once: true, amount: 0.2 }}
           >
             {features.map((feature: any, index: number) => (
-              <motion.div
-                key={index}
-                variants={cardVariants}
-                className='group relative overflow-hidden border-2 rounded-xl bg-background transition-all duration-300 hover:border-primary/50 hover:shadow-lg'
-                onMouseEnter={() => setHoveredFeature(index)}
-                onMouseLeave={() => setHoveredFeature(null)}
-              >
-                <div className='p-6'>
-                  <div className='mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20'>
-                    <feature.icon className='h-6 w-6 text-primary' />
-                  </div>
-                  <h3 className='text-xl font-semibold mb-2'>
-                    {feature.title}
-                  </h3>
-                  <p className='text-muted-foreground'>{feature.description}</p>
-                </div>
+              <CardSpotlight>
+                <motion.div
+                  key={index}
+                  variants={cardVariants}
+                  onMouseEnter={() => setHoveredFeature(index)}
+                  onMouseLeave={() => setHoveredFeature(null)}
+                  className='group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-background/50 to-background/30 p-6 shadow-xl backdrop-blur-md transition-all duration-300 hover:border-primary/40 hover:shadow-primary/30'
+                >
+                  {/* Animated Background Effect */}
+                  {hoveredFeature === index && (
+                    <div className='absolute inset-0 z-0 animate-pulse bg-gradient-to-br from-primary/20 via-transparent to-primary/30 opacity-80' />
+                  )}
 
-                {hoveredFeature === index && (
-                  <div className='absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50' />
-                )}
-              </motion.div>
+                  {/* Foreground Content */}
+                  <div className='relative z-10'>
+                    <div className='mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/15'>
+                      <feature.icon className='h-6 w-6 text-primary' />
+                    </div>
+
+                    <h3 className='text-xl font-semibold mb-2 text-white'>
+                      {feature.title}
+                    </h3>
+                    <p className='text-muted-foreground'>
+                      {feature.description}
+                    </p>
+                  </div>
+                </motion.div>
+              </CardSpotlight>
             ))}
           </motion.div>
         </div>

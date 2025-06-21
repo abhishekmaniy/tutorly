@@ -1,21 +1,27 @@
 'use client'
 
-import React, { useEffect, useId, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
 import { useOutsideClick } from '@/hooks/use-outside-click'
+import { Quiz, Summary } from '@/lib/types'
+import {
+  ArrowRightCircle,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  Lightbulb,
+  Star
+} from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { Button } from '../ui/button'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger
 } from '../ui/collapsible'
-import { Button } from '../ui/button'
-import { ChevronDown, ChevronRight } from 'lucide-react'
-import { Lesson } from '@/lib/types'
-import { ContentBlocksRenderer } from './ContentBlocksRenderer'
 
-export function ExpandableCardDemo ({ lessons }: { lessons: Lesson[] }) {
-  const [active, setActive] = useState<Lesson | null>(null)
-  const [lessonsOpen, setLessonsOpen] = useState(false)
+export function ExpandableSummaryCard ({ summary }: { summary: Summary }) {
+  const [active, setActive] = useState<Summary | null>(null)
+  const [summaryOpen, setSummaryOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const id = useId()
 
@@ -54,7 +60,7 @@ export function ExpandableCardDemo ({ lessons }: { lessons: Lesson[] }) {
         {active && typeof active === 'object' ? (
           <div className='fixed inset-0  grid place-items-center z-[100]'>
             <motion.button
-              key={`button-${active.title}-${id}`}
+              key={`button-${active.id}-${id}`}
               layout
               initial={{
                 opacity: 0
@@ -74,7 +80,7 @@ export function ExpandableCardDemo ({ lessons }: { lessons: Lesson[] }) {
               <CloseIcon />
             </motion.button>
             <motion.div
-              layoutId={`card-${active.title}-${id}`}
+              layoutId={`card-${active.id}-${id}`}
               ref={ref}
               className='w-full max-w-[500px]  h-full md:h-fit md:max-h-[90%]  flex flex-col bg-white dark:bg-neutral-900 sm:rounded-3xl overflow-hidden'
             >
@@ -82,19 +88,18 @@ export function ExpandableCardDemo ({ lessons }: { lessons: Lesson[] }) {
                 <div className='flex justify-between items-start p-4'>
                   <div className='flex flex-col gap-2 mb-2'>
                     <div className='flex items-center gap-2'>
-                    
                       <motion.h3
-                        layoutId={`title-${active.title}-${id}`}
+                        layoutId={`title-${active.id}-${id}`}
                         className='font-bold text-neutral-700 dark:text-neutral-200 break-words text-balance text-xl md:text-2xl leading-tight'
                       >
-                        {active.title}
+                        Summary
                       </motion.h3>
                     </div>
                     <motion.p
-                      layoutId={`description-${active.description}-${id}`}
+                      layoutId={`description-${active.id}-${id}`}
                       className='text-neutral-600 dark:text-neutral-400 break-words text-pretty text-sm md:text-base leading-relaxed'
                     >
-                      {active.description}
+                      Summary of {active.course?.title}
                     </motion.p>
                   </div>
                 </div>
@@ -110,15 +115,58 @@ export function ExpandableCardDemo ({ lessons }: { lessons: Lesson[] }) {
                       className='overflow-y-auto max-h-[calc(100vh-150px)] px-4 pb-24 space-y-6'
                       style={{ WebkitOverflowScrolling: 'touch' }}
                     >
-                      {!active?.contentBlocks ||
-                      active.contentBlocks.length === 0 ? (
+                      {!active?.overview ? (
                         <p className='text-sm text-muted-foreground'>
                           Generating content...
                         </p>
                       ) : (
-                        <ContentBlocksRenderer
-                          contentBlocks={active.contentBlocks}
-                        />
+                        <div className='space-y-6'>
+                          <div>
+                            <h2 className='flex items-center gap-2 text-xl font-semibold text-neutral-800 dark:text-neutral-100'>
+                              <Lightbulb className='h-5 w-5 text-yellow-500' />
+                              Overview
+                            </h2>
+                            <p className='mt-2 text-neutral-600 dark:text-neutral-300 text-sm leading-relaxed'>
+                              {active.overview}
+                            </p>
+                          </div>
+
+                          <div>
+                            <h2 className='flex items-center gap-2 text-lg font-semibold text-neutral-800 dark:text-neutral-100'>
+                              <CheckCircle className='h-5 w-5 text-green-500' />
+                              What You Learned
+                            </h2>
+                            <ul className='mt-2 list-disc list-inside text-neutral-600 dark:text-neutral-300 text-sm space-y-1'>
+                              {active.whatYouLearned.map((item, i) => (
+                                <li key={i}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          <div>
+                            <h2 className='flex items-center gap-2 text-lg font-semibold text-neutral-800 dark:text-neutral-100'>
+                              <Star className='h-5 w-5 text-indigo-500' />
+                              Skills Gained
+                            </h2>
+                            <ul className='mt-2 list-disc list-inside text-neutral-600 dark:text-neutral-300 text-sm space-y-1'>
+                              {active.skillsGained.map((skill, i) => (
+                                <li key={i}>{skill}</li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          <div>
+                            <h2 className='flex items-center gap-2 text-lg font-semibold text-neutral-800 dark:text-neutral-100'>
+                              <ArrowRightCircle className='h-5 w-5 text-blue-500' />
+                              Next Steps
+                            </h2>
+                            <ul className='mt-2 list-disc list-inside text-neutral-600 dark:text-neutral-300 text-sm space-y-1'>
+                              {active.nextSteps.map((step, i) => (
+                                <li key={i}>{step}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </motion.div>
@@ -133,11 +181,11 @@ export function ExpandableCardDemo ({ lessons }: { lessons: Lesson[] }) {
         <CollapsibleTrigger className='w-full px-4 py-2 text-lg font-semibold bg-gray-200 dark:bg-neutral-800 rounded mb-4'>
           <Button
             variant='ghost'
-            onClick={() => setLessonsOpen(prev => !prev)}
+            onClick={() => setSummaryOpen(prev => !prev)}
             className='w-full justify-between p-0 h-auto'
           >
-            <span className='font-medium'>Lessons ({lessons.length})</span>
-            {lessonsOpen ? (
+            <span className='font-medium'>Summary </span>
+            {summaryOpen ? (
               <ChevronDown className='h-4 w-4' />
             ) : (
               <ChevronRight className='h-4 w-4' />
@@ -145,33 +193,7 @@ export function ExpandableCardDemo ({ lessons }: { lessons: Lesson[] }) {
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          {lessons.map(lesson => (
-            <ul className='max-w-2xl mx-auto w-full gap-4 space-y-2 px-2'>
-              <motion.div
-                layoutId={`card-${lesson.title}-${id}`}
-                key={`card-${lesson.title}-${id}`}
-                onClick={() => setActive(lesson)}
-                className='p-4 flex flex-col md:flex-row justify-between items-center hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-xl cursor-pointer'
-              >
-                <div className='flex gap-4 flex-col md:flex-row'>
-                  <div>
-                    <motion.h3
-                      layoutId={`title-${lesson.title}-${id}`}
-                      className='font-medium text-neutral-800 dark:text-neutral-200 text-center md:text-left'
-                    >
-                      {lesson.title}
-                    </motion.h3>
-                    <motion.p
-                      layoutId={`description-${lesson.description}-${id}`}
-                      className='text-neutral-600 dark:text-neutral-400 text-center md:text-left'
-                    >
-                      {lesson.description}
-                    </motion.p>
-                  </div>
-                </div>
-              </motion.div>
-            </ul>
-          ))}
+          Summary of {summary.course?.title}{' '}
         </CollapsibleContent>
       </Collapsible>
     </>
@@ -210,48 +232,3 @@ export const CloseIcon = () => {
     </motion.svg>
   )
 }
-
-const card = [
-  {
-    id: 'lesson1',
-    title: 'Introduction to Algebra',
-    description:
-      'Learn the basics of algebra including variables and expressions.',
-    duration: '10 min',
-    contentBlocks: [
-      {
-        id: 'block1',
-        type: 'TEXT',
-        text: 'Algebra is a branch of mathematics dealing with symbols and rules for manipulating those symbols.'
-      },
-      {
-        id: 'block2',
-        type: 'MATH',
-        math: 'x^2 + y^2 = z^2'
-      },
-      {
-        id: 'block3',
-        type: 'CODE',
-        code: 'const sum = (a, b) => a + b;'
-      }
-    ]
-  },
-  {
-    id: 'lesson2',
-    title: 'Advanced Algebra',
-    description: 'Dive deeper into algebraic equations and polynomials.',
-    duration: '15 min',
-    contentBlocks: [
-      {
-        id: 'block1',
-        type: 'TEXT',
-        text: "In advanced algebra, you'll learn to work with quadratic equations."
-      },
-      {
-        id: 'block2',
-        type: 'CODE',
-        code: 'function quadratic(a, b, c) {\n  return (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);\n}'
-      }
-    ]
-  }
-]
