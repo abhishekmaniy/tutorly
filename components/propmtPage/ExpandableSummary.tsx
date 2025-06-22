@@ -1,27 +1,20 @@
 'use client'
 
 import { useOutsideClick } from '@/hooks/use-outside-click'
-import { Quiz, Summary } from '@/lib/types'
+import { Summary } from '@/lib/types'
 import {
   ArrowRightCircle,
   CheckCircle,
-  ChevronDown,
-  ChevronRight,
   Lightbulb,
   Star
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useId, useRef, useState } from 'react'
-import { Button } from '../ui/button'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from '../ui/collapsible'
+
+
 
 export function ExpandableSummaryCard ({ summary }: { summary: Summary }) {
   const [active, setActive] = useState<Summary | null>(null)
-  const [summaryOpen, setSummaryOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const id = useId()
 
@@ -174,28 +167,33 @@ export function ExpandableSummaryCard ({ summary }: { summary: Summary }) {
               </div>
             </motion.div>
           </div>
-        ) : null}
+        ) : (
+          <div>Generating...</div>
+        )}
       </AnimatePresence>
-
-      <Collapsible>
-        <CollapsibleTrigger className='w-full px-4 py-2 text-lg font-semibold bg-gray-200 dark:bg-neutral-800 rounded mb-4'>
-          <Button
-            variant='ghost'
-            onClick={() => setSummaryOpen(prev => !prev)}
-            className='w-full justify-between p-0 h-auto'
-          >
-            <span className='font-medium'>Summary </span>
-            {summaryOpen ? (
-              <ChevronDown className='h-4 w-4' />
-            ) : (
-              <ChevronRight className='h-4 w-4' />
-            )}
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          Summary of {summary.course?.title}{' '}
-        </CollapsibleContent>
-      </Collapsible>
+      <motion.div
+        layoutId={`card-${summary.id}-${id}`}
+        key={`card-${summary.id}-${id}`}
+        onClick={() => setActive(summary)}
+        className='p-4 flex flex-col md:flex-row justify-between items-center hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-xl cursor-pointer'
+      >
+        <div className='flex gap-4 flex-col md:flex-row'>
+          <div>
+            <motion.h3
+              layoutId={`title-${summary.id}-${id}`}
+              className='font-medium text-neutral-800 dark:text-neutral-200 text-center md:text-left'
+            >
+              Summary
+            </motion.h3>
+            <motion.p
+              layoutId={`description-${summary.id}-${id}`}
+              className='text-neutral-600 dark:text-neutral-400 text-center md:text-left'
+            >
+              Summary of {summary.course?.title}{' '}
+            </motion.p>
+          </div>
+        </div>
+      </motion.div>
     </>
   )
 }

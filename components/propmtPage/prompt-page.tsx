@@ -28,11 +28,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { Skeleton } from '../ui/skeleton'
-import {
-  ExpandableLessonCard
-} from './ExpandableLessonCard'
+import { ExpandableLessonCard } from './ExpandableLessonCard'
 import { ExpandableQuizCard } from './ExpandableQuizCard'
 import { ExpandableSummaryCard } from './ExpandableSummary'
+import { ExpandableKeyPointCard } from './ExpandableKeypointCard'
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -115,6 +114,10 @@ export function PromptPage () {
     setIsGenerating(true)
     setError(null)
     setStreamMessages([])
+    setGenerationProgress({
+      lessons: [],
+      quizzes: []
+    })
 
     abortControllerRef.current?.abort()
     const abortController = new AbortController()
@@ -186,6 +189,10 @@ export function PromptPage () {
                     summary: parsed.data,
                     currentStep: 'summary'
                   }
+                }
+                if (parsed.step === 'completed' && parsed.courseId) {
+                  courseId = parsed.courseId
+                  router.push(`/course/${courseId}`)
                 }
                 if (parsed.step === 'keyPoints') {
                   return {
@@ -366,7 +373,7 @@ export function PromptPage () {
 
           {/* Main Content - Course Generation */}
           {isGenerating ? (
-            <div className='fixed inset-0 z-40 pt-16 flex flex-col items-center justify-start bg-background/80 backdrop-blur-sm overflow-y-auto'>
+            <div className='fixed inset-x-0 top-16 z-40 h-[calc(100vh-64px)] flex flex-col items-center justify-start bg-background/80 backdrop-blur-sm overflow-y-auto scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#0f0f0f]'>
               {/* Animated Icon */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -406,18 +413,14 @@ export function PromptPage () {
               >
                 {generationProgress.syllabus && (
                   <Card className='mb-4'>
-                    <CardHeader>
-                      <div className='flex items-start gap-2 text-primary'>
-                        <BookOpen size={20} />
-                        <div>
-                          <CardTitle className='text-xl'>
-                            {generationProgress.syllabus.title}
-                          </CardTitle>
-                          <CardDescription className='text-muted-foreground'>
-                            {generationProgress.syllabus.description}
-                          </CardDescription>
-                        </div>
-                      </div>
+                    <CardHeader className='text-primary'>
+                      <BookOpen size={20} className='mb-2' />
+                      <CardTitle className='text-xl'>
+                        {generationProgress.syllabus.title}
+                      </CardTitle>
+                      <CardDescription className='text-muted-foreground'>
+                        {generationProgress.syllabus.description}
+                      </CardDescription>
                     </CardHeader>
                   </Card>
                 )}
@@ -427,7 +430,7 @@ export function PromptPage () {
                     <CardHeader>
                       <CardTitle>Lessons</CardTitle>
                     </CardHeader>
-                    <CardContent className='overflow-y-auto max-h-[400px] pr-2'>
+                    <CardContent className='overflow-y-auto max-h-[400px] pr-2 scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#0f0f0f]'>
                       <ExpandableLessonCard
                         lessons={generationProgress.lessons}
                       />
@@ -440,7 +443,7 @@ export function PromptPage () {
                     <CardHeader>
                       <CardTitle>Quizzes</CardTitle>
                     </CardHeader>
-                    <CardContent className='overflow-y-auto max-h-[400px] pr-2'>
+                    <CardContent className='overflow-y-auto max-h-[400px] pr-2 scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#0f0f0f]'>
                       <ExpandableQuizCard quizes={generationProgress.quizzes} />
                     </CardContent>
                   </Card>
@@ -455,6 +458,30 @@ export function PromptPage () {
                       <ExpandableSummaryCard
                         summary={generationProgress.summary}
                       />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {generationProgress.keyPoints && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent className='overflow-y-auto max-h-[400px] pr-2'>
+                      <ExpandableKeyPointCard
+                        keyPoints={generationProgress.keyPoints}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {generationProgress.analytics && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Analytics</CardTitle>
+                    </CardHeader>
+                    <CardContent className='overflow-y-auto max-h-[400px] pr-2'>
+                      Generating Analytics...
                     </CardContent>
                   </Card>
                 )}

@@ -107,7 +107,7 @@ export function ExpandableLessonCard ({ lessons }: { lessons: Lesson[] }) {
                     className='relative flex-1 overflow-hidden'
                   >
                     <div
-                      className='overflow-y-auto max-h-[calc(100vh-150px)] px-4 pb-24 space-y-6'
+                      className='overflow-y-auto max-h-[calc(100vh-150px)] px-4 pb-24 space-y-6 scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#0f0f0f]'
                       style={{ WebkitOverflowScrolling: 'touch' }}
                     >
                       {!active?.contentBlocks ||

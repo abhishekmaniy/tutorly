@@ -160,7 +160,7 @@ export async function POST (req: NextRequest) {
         )
 
         streamData(controller, '💾 Saving to database...')
-        await db.course.create({
+        const createdCourse = await db.course.create({
           data: {
             title: syllabusJson.title,
             description: syllabusJson.description,
@@ -190,7 +190,19 @@ export async function POST (req: NextRequest) {
                     isCompleted: false,
                     gainedMarks: 0,
                     timeTaken: 0,
-                    questions: { create: l.quizJson.questions }
+                    questions: {
+                      create: l.quizJson.questions.map((q: any) => ({
+                        number: q.number,
+                        question: q.question,
+                        type: q.type,
+                        options: q.options ?? [],
+                        marks: q.marks,
+                        correctAnswers: q.correctAnswers ?? [],
+                        explanation:
+                          q.explanation ?? 'Explanation not provided.', // 👈 Provide fallback if missing
+                        rubric: q.rubric ?? []
+                      }))
+                    }
                   }
                 }
               }))
@@ -200,6 +212,11 @@ export async function POST (req: NextRequest) {
             analytics: { create: postCourse.analytics }
           }
         })
+
+        streamData(
+          controller,
+          JSON.stringify({ step: 'completed', courseId: createdCourse.id })
+        )
 
         streamData(controller, '✅ Course generation complete.')
         controller.close()
@@ -301,6 +318,14 @@ You are an expert lesson content creator.
 - The response MUST start **directly** with '{'.
 - DO NOT include phrases like "Here is..." or "Sure!".
 
+⚠️ VERY IMPORTANT: The response MUST be 100% STRICT VALID JSON. 
+DO NOT leave out commas. 
+DO NOT include trailing commas.
+Ensure all property names and string values are enclosed in double quotes ("").
+
+If you cannot generate the JSON properly, respond with '{}'.
+
+
 📚 **Required JSON Format**:
 {
   "sections": [
@@ -345,6 +370,14 @@ ${JSON.stringify(contentBlocks)}
 - DO NOT include any explanation, introduction, or markdown formatting (no '''json or ''').
 - The response MUST start **directly** with '{'.
 - DO NOT include phrases like "Here is..." or "Sure!".
+
+⚠️ VERY IMPORTANT: The response MUST be 100% STRICT VALID JSON. 
+DO NOT leave out commas. 
+DO NOT include trailing commas.
+Ensure all property names and string values are enclosed in double quotes ("").
+
+If you cannot generate the JSON properly, respond with '{}'.
+
 
 📚 **Required JSON Format**:
 {
