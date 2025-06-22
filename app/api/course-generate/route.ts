@@ -301,41 +301,6 @@ function getLessonContextPrompt (lessonTitle: string) {
   return `
 You are an expert curriculum designer.
 
-🎯 Your task is to generate the **lesson context** for the lesson titled: "${lessonTitle}".
-
-⚠️ IMPORTANT INSTRUCTIONS:
-- Respond **ONLY with strict JSON**.
-- DO NOT include any explanation, introduction, or markdown formatting (no '''json or ''').
-- The response MUST start **directly** with '{'.
-- DO NOT add phrases like "Here is..." or "Sure!".
-
-📚 Output JSON Format:
-{
-  "title": "${lessonTitle}",
-  "objective": "Clear learning objective for this lesson in ONE concise sentence.",
-  "sections": [
-    {
-      "title": "Descriptive Section Heading",
-      "description": "1-2 sentence description of what this section will cover."
-    }
-  ]
-}
-
-✅ Ensure that:
-- The **objective** describes the *learner’s outcome* clearly and concisely.
-- Each **section** logically contributes to achieving the objective.
-- Generate as many sections as required for a complete understanding of the lesson.
-
-- Each section should focus on ONE major subtopic or concept.
-- Make section titles engaging, actionable, or thought-provoking if suitable.
-
-  `
-}
-
-function getAllSectionsContentPrompt (context: any) {
-  return `
-You are an expert curriculum designer.
-
 🎯 Your task is to generate a STRICTLY VALID JSON lesson object for the lesson titled: "${lessonTitle}".
 
 ⚠️ STRICT RULES — Follow exactly:
@@ -393,6 +358,96 @@ No placeholders like "To be filled"—all fields must be fully completed.
 
 Generate as many sections as required to ensure learners fully grasp the lesson topic.
 
+  `
+}
+
+function getAllSectionsContentPrompt (context: any) {
+  return `
+You are an expert lesson content creator.
+
+🎯 Your task is to generate detailed educational content for all sections of the lesson titled: "${context.title}"
+
+📖 Lesson Objective: "${context.objective}"
+
+⚠️ STRICT JSON ONLY — Follow these formatting instructions exactly:
+
+✅ Start the response directly with { — no introductory text, no explanation, no markdown formatting.
+
+✅ DO NOT include any phrases like "Here is..." or "Sure!".
+
+✅ All property names and string values must be enclosed in double quotes ("").
+
+✅ DO NOT omit commas between JSON fields, and DO NOT include trailing commas.
+
+✅ Escape any embedded quotes properly with \" if necessary.
+
+❗ If you are unable to generate the JSON properly for any reason, respond ONLY with {}.
+
+📚 REQUIRED JSON FORMAT:
+
+json
+Copy
+Edit
+{
+  "sections": [
+    {
+      "title": "Section Title",
+      "contentBlocks": [
+        {
+          "type": "TEXT" | "CODE" | "MATH" | "GRAPH",
+          "content": "Detailed content here."
+        }
+      ]
+    }
+  ]
+}
+✅ Content Guidelines (Strictly Follow):
+
+Include all sections related to the lesson context.
+
+Each section must have at least 1 or more contentBlocks arranged in logical teaching order.
+
+Use the appropriate type:
+
+"TEXT" ➔ Explanations, conceptual overviews, descriptions.
+
+"CODE" ➔ Programming code or configuration examples.
+
+"MATH" ➔ Mathematical formulas or expressions.
+
+"GRAPH" ➔ Diagrams or visual explanations (describe in text what the graph should show).
+
+Combine multiple types in a section when appropriate (Example: "TEXT" ➔ "CODE" ➔ "GRAPH" in sequence for better understanding).
+
+Write clear, coherent, and educational content. Avoid short or incomplete explanations.
+
+Make contentBlocks substantial—each should help the learner fully grasp that part of the section.
+
+Ensure logical flow across the sections to support progressive understanding of the lesson.
+
+⚙️ Example of Good Structure (for reference only, DO NOT include this in your response):
+
+json
+Copy
+Edit
+{
+  "sections": [
+    {
+      "title": "Understanding Functions in JavaScript",
+      "contentBlocks": [
+        {
+          "type": "TEXT",
+          "content": "Functions allow you to reuse blocks of code by encapsulating functionality into callable units."
+        },
+        {
+          "type": "CODE",
+          "content": "function greet(name) {\n  return 'Hello, ${name}!';\n}"
+        }
+      ]
+    }
+  ]
+}
+🔒 STRICT JSON FORMAT REQUIRED. Respond now with the completed JSON. If unsure, respond with '{}' only.
 `
 }
 
