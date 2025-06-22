@@ -244,28 +244,56 @@ function getSyllabusPrompt (topic: string) {
   return `
 You are an expert educational content creator.
 
-🎯 Your task is to generate a **comprehensive syllabus** for the course topic: "${topic}".
+🎯 Your task is to generate a STRICTLY VALID JSON syllabus for the course topic: "${topic}".
 
-⚠️ IMPORTANT INSTRUCTIONS:
-- Respond **ONLY with strict JSON**.
-- DO NOT include any explanation, introduction, or markdown (no '''json or ''').
-- The response MUST start **directly** with '{'.
-- NO preface such as "Here is..." or "Sure!".
+⚠️ CRITICAL RULES — Follow strictly:
 
-📚 Output JSON Format:
+Output STRICT VALID JSON.
+
+The response MUST start directly with '{' and end with '}'.
+
+NO explanations, introductions, markdown, comments, or code block syntax.
+
+NO extra whitespace outside the JSON.
+
+NO null, undefined, or empty string ("") values. If a value is unknown, OMIT the field entirely.
+
+Escape any special characters properly to maintain valid JSON (e.g., quotes within strings must be escaped: \").
+
+All strings must be double-quoted.
+
+If you make a mistake in JSON, repair the JSON before responding.
+
+📚 Required JSON Format (strict):
 {
-  "title": "Course Title",
-  "description": "Concise course description.",
-  "lessons": [
-    {
-      "title": "Lesson Title",
-      "duration": "e.g., '10 minutes'"
-    }
-  ]
+"title": "Concise, compelling course title",
+"description": "1-2 sentence clear explanation of what the course covers.",
+"lessons": [
+{
+"title": "Lesson Title (clear and engaging, no numbering like 'Lesson 1')",
+"duration": "e.g., '10 minutes' or '1 hour 15 minutes'"
+}
+// Add as many lessons as needed for a full learning journey.
+]
 }
 
-Generate as many lessons as necessary for a complete learning journey. Make sure the **title** is compelling and the **description** clearly explains what the course covers.
+Example:
+{
+"title": "Mastering Digital Marketing",
+"description": "Learn how to effectively promote products and services online using proven digital marketing strategies.",
+"lessons": [
+{
+"title": "Introduction to Digital Marketing",
+"duration": "10 minutes"
+},
+{
+"title": "SEO Basics for Website Optimization",
+"duration": "20 minutes"
+}
+]
+}
 
+Generate a complete syllabus with as many lessons as necessary for a full, well-rounded educational experience.
 }`
 }
 
@@ -306,80 +334,103 @@ You are an expert curriculum designer.
 
 function getAllSectionsContentPrompt (context: any) {
   return `
-You are an expert lesson content creator.
+You are an expert curriculum designer.
 
-🎯 Your task is to generate **detailed educational content** for **all sections** of the lesson: "${context.title}"
+🎯 Your task is to generate a STRICTLY VALID JSON lesson object for the lesson titled: "${lessonTitle}".
 
-📖 **Lesson Context**: "${context.objective}"
+⚠️ STRICT RULES — Follow exactly:
 
-⚠️ IMPORTANT INSTRUCTIONS:
-- Respond **ONLY with strict JSON**.
-- DO NOT include any introduction, explanation, or markdown formatting (no '''json or ''').
-- The response MUST start **directly** with '{'.
-- DO NOT include phrases like "Here is..." or "Sure!".
+Respond ONLY with valid JSON. The output MUST start directly with { and end with }.
 
-⚠️ VERY IMPORTANT: The response MUST be 100% STRICT VALID JSON. 
-DO NOT leave out commas. 
-DO NOT include trailing commas.
-Ensure all property names and string values are enclosed in double quotes ("").
+NO markdown formatting, NO explanations, NO introductions.
 
-If you cannot generate the JSON properly, respond with '{}'.
+NO empty strings, nulls, or undefined values. If you don't know a value, OMIT the field entirely.
 
+Properly escape any special characters in strings (e.g., \" for quotes inside text).
 
-📚 **Required JSON Format**:
+Strings must be double-quoted.
+
+If the JSON is invalid, REPAIR it before submitting.
+
+📚 Output JSON Format (REQUIRED):
 {
-  "sections": [
-    {
-      "title": "Section Title",
-      "contentBlocks": [
-        {
-          "type": "TEXT" | "CODE" | "MATH" | "GRAPH",
-          "content": "Detailed content here."
-        }
-      ]
-    }
-  ]
+"title": "${lessonTitle}",
+"objective": "One clear, concise learning objective describing what the learner will achieve after completing this lesson.",
+"sections": [
+{
+"title": "Clear, descriptive, and engaging section heading",
+"description": "1–2 sentence explanation of what this section covers, clearly contributing to the lesson’s objective."
+}
+// Add as many sections as necessary for complete understanding.
+]
 }
 
-✅ **Content Guidelines**:
-- Include **all sections** from the lesson context.
-- Each **section** should have multiple **contentBlocks** arranged in a **logical teaching order**.
-- Use **"TEXT"** for explanations, **"CODE"** for programming examples, **"MATH"** for formulas, and **"GRAPH"** for diagrams (describe in text what the graph should represent).
-- **Combine different types where appropriate** to enhance understanding (e.g., a "TEXT" explanation followed by a "CODE" or "MATH" block).
-- The content should **flow naturally** and progressively build the learner’s understanding.
+✅ Instructions for content generation:
 
-- Make contentBlocks substantial and informative.
-- Use clear, instructional writing in "TEXT" blocks.
-- Ensure technical accuracy in "CODE" and "MATH" blocks.
+Make sure the objective describes what the learner will be able to do/know/understand by the end of this lesson.
 
+Each section should be unique, focusing on ONE core subtopic or key concept.
+
+Do not use numbering in section titles (e.g., no "Section 1").
+
+No placeholders like "To be filled"—all fields must be fully completed.
+
+📌 Example (structure only, not content):
+{
+"title": "Understanding Digital Marketing Funnels",
+"objective": "Understand how marketing funnels guide potential customers from awareness to conversion.",
+"sections": [
+{
+"title": "Introduction to Funnels",
+"description": "Learn what a marketing funnel is and why it’s important for guiding customer journeys."
+},
+{
+"title": "Stages of a Funnel",
+"description": "Explore each key stage in a funnel, from awareness to post-purchase engagement."
+}
+]
+}
+
+Generate as many sections as required to ensure learners fully grasp the lesson topic.
 
 `
 }
 
 function getQuizPrompt (lessonTitle: string, contentBlocks: any[]) {
   return `
-You are an expert quiz generator.
+You are an expert quiz generator with advanced knowledge of assessment design.
 
-🎯 Your task is to generate a **high-quality quiz** for the lesson: "${lessonTitle}".
+🎯 Your task is to generate a STRICTLY VALID JSON quiz for the lesson titled: "${lessonTitle}"
 
-📖 **Lesson Content** (reference for generating questions): 
+📖 Lesson Content (reference for generating questions):
+
+json
+Copy
+Edit
 ${JSON.stringify(contentBlocks)}
+⚠️ IMPORTANT FORMATTING RULES (MANDATORY):
 
-⚠️ IMPORTANT INSTRUCTIONS:
-- Respond **ONLY with strict JSON**.
-- DO NOT include any explanation, introduction, or markdown formatting (no '''json or ''').
-- The response MUST start **directly** with '{'.
-- DO NOT include phrases like "Here is..." or "Sure!".
+Respond ONLY with strictly valid JSON. The output MUST start directly with { and end with }.
 
-⚠️ VERY IMPORTANT: The response MUST be 100% STRICT VALID JSON. 
-DO NOT leave out commas. 
+NO explanations, introductions, or markdown formatting.
+
+DO NOT include phrases like "Here is..." or "Sure!".
+
+All property names and string values MUST use double quotes ("").
+
+DO NOT leave out commas.
+
 DO NOT include trailing commas.
-Ensure all property names and string values are enclosed in double quotes ("").
 
-If you cannot generate the JSON properly, respond with '{}'.
+If you cannot generate STRICT JSON, respond with '{}'.
 
+Escape any special characters properly (e.g., use \" for embedded quotes).
 
-📚 **Required JSON Format**:
+📚 Output JSON Format (STRICTLY REQUIRED):
+
+json
+Copy
+Edit
 {
   "title": "Quiz for ${lessonTitle}",
   "duration": "10 minutes",
@@ -391,27 +442,51 @@ If you cannot generate the JSON properly, respond with '{}'.
       "number": 1,
       "question": "Clear, specific, and unambiguous question based strictly on the lesson content.",
       "type": "MCQ" | "MULTIPLE_SELECT" | "DESCRIPTIVE" | "TRUE_FALSE",
-      "options": ["A", "B", "C", "D"],        // Required for MCQ & MULTIPLE_SELECT only
+      "options": ["A", "B", "C", "D"],      // REQUIRED for MCQ & MULTIPLE_SELECT only
       "marks": 10,
-      "correctAnswers": ["A"],                // Required for all EXCEPT DESCRIPTIVE
-      "explanation": "Concise explanation of why the correct answer(s) is correct.",
-      "rubric": ["Point 1", "Point 2"]        // REQUIRED for DESCRIPTIVE questions only
+      "correctAnswers": ["A"],              // REQUIRED for all EXCEPT DESCRIPTIVE
+      "explanation": "Short explanation of why the answer is correct.", // REQUIRED for all except DESCRIPTIVE
+      "rubric": ["Point 1", "Point 2"]      // REQUIRED for DESCRIPTIVE only
     }
   ]
 }
+✅ Instructions for Generating Quiz Questions:
 
-✅ **Question Guidelines**:
-- Include a **balanced mix** of question types (**MCQ**, **MULTIPLE_SELECT**, **TRUE_FALSE**, and **DESCRIPTIVE** when appropriate).
-- Questions **must** directly relate to and test understanding of the provided lesson content.
-- **Ensure clarity**—avoid vague or ambiguous questions.
-- **For DESCRIPTIVE questions**, provide a **grading rubric** with key points that should be included in an excellent answer.
+Provide 5 to 8 meaningful questions to test understanding of the lesson.
 
-Generate enough questions to meaningfully assess the learner’s understanding of the lesson.
- 
-- Include a mix of easy, moderate, and challenging questions.
-- Ensure no two questions test the exact same concept.
-- When using MCQs, avoid obviously incorrect distractor options.
+Balance the quiz with different question types:
 
+MCQ: Single correct answer.
+
+MULTIPLE_SELECT: Multiple correct options.
+
+TRUE_FALSE: Only "True" or "False" as options.
+
+DESCRIPTIVE: Requires a grading rubric with at least 2 key points.
+
+MCQ & MULTIPLE_SELECT must include 4 plausible, realistic options. Avoid obviously wrong choices.
+
+For DESCRIPTIVE questions, provide a grading rubric — a list of specific key points learners should cover.
+
+Ensure clarity and direct relevance to the lesson content.
+
+Avoid duplicate or repetitive questions.
+
+📌 Validation and Quality Rules:
+
+All objects and arrays must be fully populated and syntactically correct.
+
+If any part of the JSON would be invalid, REPAIR it before responding.
+
+Each "number" must be sequential, starting from 1.
+
+Every question must have the "marks" field, and all marks should add up to "totalMarks".
+
+Preferably mix easy, medium, and challenging questions.
+
+🔒 STRICT JSON COMPLIANCE REQUIRED.
+
+If you fully understand the lesson content and the JSON format, begin generating now.
 
 `
 }
@@ -420,52 +495,89 @@ function getPostCourseDataPrompt (topic: string) {
   return `
 You are an expert educational analyst and instructional designer.
 
-🎯 Your task is to generate the **summary**, **key points**, and **analytics** for the course: "${topic}"
+🎯 Your task is to generate a strictly valid JSON object representing the summary, key points, and analytics for the course titled: "${topic}"
 
-⚠️ IMPORTANT INSTRUCTIONS:
-- Respond **ONLY with strict JSON**.
-- DO NOT include any introduction, explanation, or markdown formatting (no '''json or ''').
-- The response MUST start **directly** with '{'.
-- DO NOT include phrases like "Here is..." or "Sure!".
+📖 The JSON must follow this exact schema:
 
-📚 **Required JSON Format**:
+json
+Copy
+Edit
 {
   "summary": {
-    "overview": "Concise overview of the course content and its purpose (2-3 sentences).",
-    "whatYouLearned": ["Key knowledge areas or concepts covered in the course."],
-    "skillsGained": ["Practical or conceptual skills the learner gained."],
-    "nextSteps": ["Recommended further topics, skills, or resources the learner should explore."]
+    "overview": "2-3 sentence overview of the course content and its purpose.",
+    "whatYouLearned": ["Concept 1", "Concept 2", "Concept 3"],
+    "skillsGained": ["Skill 1", "Skill 2", "Skill 3"],
+    "nextSteps": ["Recommended next topic 1", "Recommended next topic 2"]
   },
   "keyPoints": [
     {
-      "category": "Category Name (e.g., Core Concepts, Best Practices, Tools Used)",
+      "category": "e.g., Core Concepts, Best Practices, Tools Used",
       "points": ["Important point 1", "Important point 2", "Important point 3"]
     }
   ],
   "analytics": {
-    "timeSpentTotal": float,           // Total time spent on the course in minutes
-    "timeSpentLessons": float,         // Time spent on lessons in minutes
-    "timeSpentQuizzes": float,         // Time spent on quizzes in minutes
-    "averageScore": float,             // Average quiz score percentage (0-100)
+    "timeSpentTotal": float,           // Total time spent on the course in minutes (e.g., 120.5)
+    "timeSpentLessons": float,         // Time spent on lessons in minutes (e.g., 90.0)
+    "timeSpentQuizzes": float,         // Time spent on quizzes in minutes (e.g., 30.5)
+    "averageScore": float,             // Average quiz score percentage (0 to 100)
     "totalQuizzes": integer,           // Total number of quizzes in the course
-    "passedQuizzes": integer,          // Number of quizzes successfully passed
-    "grade": "EXCELLENT" | "GOOD" | "AVERAGE" | "NEEDS_IMPROVEMENT", // Overall learner performance grade
-    "lessonsCompleted": integer,       // Number of lessons completed by the learner
-    "quizzesCompleted": integer,       // Number of quizzes completed by the learner
+    "passedQuizzes": integer,          // Number of quizzes passed successfully
+    "grade": "EXCELLENT" | "GOOD" | "AVERAGE" | "NEEDS_IMPROVEMENT",
+    "lessonsCompleted": integer,       // Number of lessons completed
+    "quizzesCompleted": integer,       // Number of quizzes completed
     "totalLessons": integer            // Total number of lessons in the course
   }
 }
+⚠️ STRICT FORMATTING RULES (MANDATORY):
 
-✅ **Content Guidelines**:
-- The **overview** should provide a clear summary of what the course offered.
-- **whatYouLearned** should highlight major concepts and knowledge areas.
-- **skillsGained** should list *practical* abilities or understandings acquired.
-- **nextSteps** should guide the learner on *how to advance further* in this subject.
-- **keyPoints** should summarize the *essential takeaways* by category.
-- **analytics** should include **realistic, coherent numbers** representing learner engagement and performance.
+Respond ONLY with valid JSON — starting with { and ending with }.
 
-Respond with **complete** and **high-quality** content for each section.
+NO introduction, explanation, or markdown formatting.
 
+DO NOT include phrases like "Here is..." or "Sure!".
 
+All property names and string values must be enclosed in double quotes ("").
+
+Do not omit commas or include trailing commas.
+
+Escape embedded quotes properly (use \" where needed).
+
+If you cannot generate STRICT JSON, respond with '{}'.
+
+✅ Content Guidelines:
+
+"overview": Provide a concise and meaningful description of the course purpose.
+
+"whatYouLearned": Major concepts/knowledge areas covered in the course.
+
+"skillsGained": Practical skills or conceptual abilities acquired.
+
+"nextSteps": Suggestions for advancing knowledge or skills beyond this course.
+
+"keyPoints":
+
+Each key point must be relevant and actionable.
+
+Include at least 3 points per category.
+
+"analytics":
+
+Numbers must be realistic and coherent.
+
+Example: timeSpentTotal = timeSpentLessons + timeSpentQuizzes
+
+"averageScore" should realistically correspond to "grade" (e.g., if "grade": "GOOD", "averageScore" should be around 70-80).
+
+⚠️ Validation Rules (Critical):
+
+Ensure that ALL fields are present, even if empty arrays are required.
+
+Use realistic float values for time (e.g., 120.5) — NOT strings.
+
+grade must be one of: "EXCELLENT", "GOOD", "AVERAGE", "NEEDS_IMPROVEMENT"
+
+🔒 STRICT JSON COMPLIANCE REQUIRED.
+
+Begin generating the JSON now if you fully understand these instructions.
   `
 }
