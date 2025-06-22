@@ -1,9 +1,9 @@
 {
+  "version": 2,
   "functions": {
-    "api/generate-course/route.ts": {
+    "api/**/*.ts": {
       "runtime": "nodejs18.x",
-      "maxDuration": 60, 
-      "memory": 1024
+      "maxDuration": 60
     }
   }
 }
