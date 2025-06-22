@@ -120,144 +120,131 @@ export function PromptPage () {
     })
 
     abortControllerRef.current?.abort()
-    const abortController = new AbortController()
-    abortControllerRef.current = abortController
+    abortControllerRef.current = new AbortController() // for cleanup purposes
+
+    let socket: WebSocket | null = null
+    let courseId: string | null = null
 
     try {
       const token = await getToken()
-      const response = await fetch('/api/course-generate', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ prompt }),
-        signal: abortController.signal
-      })
+      const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL}`
 
-      if (!response.ok || !response.body)
-        throw new Error('Failed to start course generation')
+      socket = new WebSocket(wsUrl)
 
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
+      socket.onopen = () => {
+        socket?.send(
+          JSON.stringify({
+            topic: prompt,
+            userId, // 👈 include userId for backend
+            token
+          })
+        )
+      }
 
-      let courseId: string | null = null
-      let buffer = ''
+      socket.onmessage = event => {
+        try {
+          const parsed = JSON.parse(event.data)
 
-      while (true) {
-        const { done, value } = await reader.read()
-        buffer += decoder.decode(value || new Uint8Array(), { stream: true })
-
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || '' // Save incomplete line in buffer
-
-        for (const line of lines) {
-          if (line.startsWith('data:')) {
-            const msg = line.replace('data:', '').trim()
-            if (!msg) return
-
-            try {
-              const parsed = JSON.parse(msg)
-              setGenerationProgress(prev => {
-                if (
-                  parsed.step === 'syllabus' &&
-                  parsed.status === 'completed'
-                ) {
-                  return {
-                    ...prev,
-                    syllabus: parsed.data,
-                    currentStep: 'syllabus'
-                  }
-                }
-                if (parsed.step === 'lesson') {
-                  return {
-                    ...prev,
-                    lessons: [...prev.lessons, parsed.data],
-                    currentStep: 'lesson'
-                  }
-                }
-                if (parsed.step === 'quiz') {
-                  return {
-                    ...prev,
-                    quizzes: [...prev.quizzes, parsed.data],
-                    currentStep: 'quiz'
-                  }
-                }
-                if (parsed.step === 'summary') {
-                  return {
-                    ...prev,
-                    summary: parsed.data,
-                    currentStep: 'summary'
-                  }
-                }
-                if (parsed.step === 'completed' && parsed.courseId) {
-                  courseId = parsed.courseId
-                  router.push(`/course/${courseId}`)
-                }
-                if (parsed.step === 'keyPoints') {
-                  return {
-                    ...prev,
-                    keyPoints: parsed.data,
-                    currentStep: 'keyPoints'
-                  }
-                }
-                if (parsed.step === 'analytics') {
-                  return {
-                    ...prev,
-                    analytics: parsed.data,
-                    currentStep: 'analytics'
-                  }
-                }
-                if (parsed.step === 'contentBlock') {
-                  return {
-                    ...prev,
-                    lessons: prev.lessons.map(lesson =>
-                      lesson.title === parsed.lessonTitle
-                        ? {
-                            ...lesson,
-                            contentBlocks: [
-                              ...(lesson.contentBlocks || []),
-                              parsed.contentBlock
-                            ]
-                          }
-                        : lesson
-                    ),
-                    currentStep: 'contentBlock'
-                  }
-                }
-
-                return prev
-              })
-            } catch {
-              setStreamMessages(prev => [...prev, msg])
-            }
+          if (parsed.step === 'syllabus' && parsed.status === 'completed') {
+            setGenerationProgress(prev => ({
+              ...prev,
+              syllabus: parsed.data,
+              currentStep: 'syllabus'
+            }))
           }
+
+          if (parsed.step === 'lesson' && parsed.data) {
+            setGenerationProgress(prev => ({
+              ...prev,
+              lessons: [...prev.lessons, parsed.data],
+              currentStep: 'lesson'
+            }))
+          }
+
+          if (parsed.step === 'quiz' && parsed.data) {
+            setGenerationProgress(prev => ({
+              ...prev,
+              quizzes: [...prev.quizzes, parsed.data],
+              currentStep: 'quiz'
+            }))
+          }
+
+          if (parsed.step === 'summary' && parsed.data) {
+            setGenerationProgress(prev => ({
+              ...prev,
+              summary: parsed.data,
+              currentStep: 'summary'
+            }))
+          }
+
+          if (parsed.step === 'keyPoints' && parsed.data) {
+            setGenerationProgress(prev => ({
+              ...prev,
+              keyPoints: parsed.data,
+              currentStep: 'keyPoints'
+            }))
+          }
+
+          if (parsed.step === 'analytics' && parsed.data) {
+            setGenerationProgress(prev => ({
+              ...prev,
+              analytics: parsed.data,
+              currentStep: 'analytics'
+            }))
+          }
+
+          if (parsed.step === 'contentBlock') {
+            setGenerationProgress(prev => ({
+              ...prev,
+              lessons: prev.lessons.map(lesson =>
+                lesson.title === parsed.lessonTitle
+                  ? {
+                      ...lesson,
+                      contentBlocks: [
+                        ...(lesson.contentBlocks || []),
+                        parsed.contentBlock
+                      ]
+                    }
+                  : lesson
+              ),
+              currentStep: 'contentBlock'
+            }))
+          }
+
+          if (parsed.step === 'completed' && parsed.courseId) {
+            courseId = parsed.courseId
+            router.push(`/course/${courseId}`)
+          }
+
+          if (parsed.step === 'error' && parsed.message) {
+            setError(parsed.message)
+          }
+
+          if (typeof parsed === 'string') {
+            setStreamMessages(prev => [...prev, parsed])
+          }
+        } catch (err) {
+          console.error('Error parsing message', err)
         }
-
-        if (done) break
       }
 
-      // Flush any remaining text in buffer after stream ends
-      if (buffer.trim().startsWith('data:')) {
-        const lastMsg = buffer.replace('data:', '').trim()
-        if (lastMsg) setStreamMessages(prev => [...prev, lastMsg])
+      socket.onerror = () => {
+        setError('WebSocket error during course generation')
       }
 
-      if (courseId) {
-        // Delay redirect by 2 seconds to show final streamed message
-        setTimeout(() => {
-          router.push(`/course/${courseId}`)
-        }, 2000)
-      } else {
-        throw new Error('Course ID not received')
+      socket.onclose = () => {
+        setIsGenerating(false)
       }
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        console.error(err)
-        setError('Failed to generate course. Please try again.')
-      }
-    } finally {
+    } catch (err) {
+      console.error(err)
+      setError('Failed to start WebSocket course generation.')
       setIsGenerating(false)
+    }
+
+    return () => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.close()
+      }
     }
   }
 
