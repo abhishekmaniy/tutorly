@@ -82,7 +82,6 @@ export function ExpandableLessonCard ({ lessons }: { lessons: Lesson[] }) {
                 <div className='flex justify-between items-start p-4'>
                   <div className='flex flex-col gap-2 mb-2'>
                     <div className='flex items-center gap-2'>
-                    
                       <motion.h3
                         layoutId={`title-${active.title}-${id}`}
                         className='font-bold text-neutral-700 dark:text-neutral-200 break-words text-balance text-xl md:text-2xl leading-tight'
@@ -107,7 +106,9 @@ export function ExpandableLessonCard ({ lessons }: { lessons: Lesson[] }) {
                     className='relative flex-1 overflow-hidden'
                   >
                     <div
-                      className='overflow-y-auto max-h-[calc(100vh-150px)] px-4 pb-24 space-y-6 scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#0f0f0f]'
+                      className='overflow-y-auto max-h-[calc(100vh-150px)] px-4 pb-24 space-y-6 scrollbar-thin 
+  scrollbar-thumb-gray-400 scrollbar-track-gray-200
+  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
                       style={{ WebkitOverflowScrolling: 'touch' }}
                     >
                       {!active?.contentBlocks ||

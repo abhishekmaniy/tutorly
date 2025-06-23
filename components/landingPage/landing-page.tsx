@@ -32,6 +32,7 @@ import { useAuth } from '@clerk/nextjs'
 import { cubicBezier, easeOut, motion, Variants } from 'framer-motion'
 import { BackgroundLines } from '../ui/background-lines'
 import { CardSpotlight } from '../ui/card-spotlight'
+import { cn } from '@/lib/utils'
 
 const containerVariants = {
   hidden: {},
@@ -141,8 +142,8 @@ export function LandingPage () {
   const pricing = [
     {
       name: 'Starter',
-      price: '$9',
-      period: '/month',
+      price: '₹0',
+      period: '/free',
       description: 'Perfect for individual learners',
       features: [
         '5 AI-generated courses per month',
@@ -154,7 +155,7 @@ export function LandingPage () {
     },
     {
       name: 'Pro',
-      price: '$19',
+      price: '₹99',
       period: '/month',
       description: 'Best for serious learners',
       features: [
@@ -163,13 +164,15 @@ export function LandingPage () {
         'All quiz types',
         'Priority support',
         'Course sharing',
-        'Custom learning paths'
+        'Custom learning paths',
+        'Video lectures (coming soon)',
+        'Images in course content (coming soon)'
       ],
       popular: true
     },
     {
       name: 'Team',
-      price: '$49',
+      price: '₹249',
       period: '/month',
       description: 'For teams and organizations',
       features: [
@@ -220,9 +223,14 @@ export function LandingPage () {
   if (!mounted) return null
 
   return (
-    <div className='min-h-screen bg-background'>
+    <div
+      className='h-screen bg-background overflow-y-auto scrollbar-thin 
+  scrollbar-thumb-gray-400 scrollbar-track-gray-200
+  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900
+'
+    >
+      {' '}
       <Navbar />
-
       {/* Hero Section */}
       <BackgroundLines className='relative overflow-hidden py-20 lg:py-32'>
         <div className='absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-primary/5' />
@@ -307,7 +315,6 @@ export function LandingPage () {
           }}
         />
       </BackgroundLines>
-
       {/* Features Section */}
       <section id='features' className='py-20'>
         <div className='container mx-auto px-4'>
@@ -341,7 +348,11 @@ export function LandingPage () {
                   variants={cardVariants}
                   onMouseEnter={() => setHoveredFeature(index)}
                   onMouseLeave={() => setHoveredFeature(null)}
-                  className='group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-background/50 to-background/30 p-6 shadow-xl backdrop-blur-md transition-all duration-300 hover:border-primary/40 hover:shadow-primary/30'
+                  className={cn(
+                    'group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-6 shadow-xl backdrop-blur-md transition-all duration-300',
+                    'from-white/60 to-white/40 border-gray-300 hover:border-primary/50 hover:shadow-primary/30', // ✅ Light mode
+                    'dark:from-background/50 dark:to-background/30 dark:border-white/10 dark:hover:border-primary/40' // ✅ Dark mode
+                  )}
                 >
                   {/* Animated Background Effect */}
                   {hoveredFeature === index && (
@@ -354,7 +365,7 @@ export function LandingPage () {
                       <feature.icon className='h-6 w-6 text-primary' />
                     </div>
 
-                    <h3 className='text-xl font-semibold mb-2 text-white'>
+                    <h3 className='text-xl font-semibold mb-2 text-black dark:text-white'>
                       {feature.title}
                     </h3>
                     <p className='text-muted-foreground'>
@@ -367,7 +378,6 @@ export function LandingPage () {
           </motion.div>
         </div>
       </section>
-
       {/* Screenshots Section */}
       <section className='py-20 bg-muted/30'>
         <div className='container mx-auto px-4'>
@@ -430,7 +440,6 @@ export function LandingPage () {
           </motion.div>
         </div>
       </section>
-
       {/* Pricing Section */}
       <section id='pricing' className='py-20'>
         <div className='container mx-auto px-4'>
@@ -466,24 +475,54 @@ export function LandingPage () {
                     plan.popular ? 'border-primary shadow-lg scale-105' : ''
                   }`}
                 >
+                  {/* ✅ Coming Soon badge for Team */}
+                  {plan.name === 'Team' && (
+                    <Badge className='absolute -top-3 left-1/2 -translate-x-1/2 bg-muted text-foreground'>
+                      Coming Soon
+                    </Badge>
+                  )}
+
+                  {/* ✅ Most Popular badge for Pro */}
                   {plan.popular && (
                     <Badge className='absolute -top-3 left-1/2 -translate-x-1/2'>
                       Most Popular
                     </Badge>
                   )}
+
                   <CardHeader className='text-center'>
                     <CardTitle className='text-2xl'>{plan.name}</CardTitle>
+
                     <div className='mt-4'>
                       <span className='text-4xl font-bold'>{plan.price}</span>
                       <span className='text-muted-foreground'>
                         {plan.period}
                       </span>
                     </div>
+
                     <CardDescription className='mt-2'>
                       {plan.description}
                     </CardDescription>
                   </CardHeader>
+
                   <CardContent>
+                    {/* ✅ Free for all users notice for Pro */}
+                    {plan.name === 'Pro' && (
+                      <motion.div
+                        className='mb-4 rounded-md p-2 text-center text-primary text-sm font-medium'
+                        initial={{ backgroundColor: 'rgba(59,130,246,0.1)' }} // primary/10
+                        animate={{
+                          backgroundColor: [
+                            'rgba(59,130,246,0.1)', // light
+                            'rgba(59,130,246,0.2)', // highlight
+                            'rgba(59,130,246,0.1)' // light
+                          ]
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        Free for all users for 15 days after launch
+                      </motion.div>
+                    )}
+
                     <ul className='space-y-3'>
                       {plan.features.map(
                         (feature: string, featureIndex: number) => (
@@ -494,11 +533,13 @@ export function LandingPage () {
                         )
                       )}
                     </ul>
+
                     <Button
                       className='mt-6 w-full'
                       variant={plan.popular ? 'default' : 'outline'}
+                      disabled={plan.name === 'Team'} // ✅ Disable button for Coming Soon
                     >
-                      Get Started
+                      {plan.name === 'Team' ? 'Coming Soon' : 'Get Started'}
                     </Button>
                   </CardContent>
                 </Card>
@@ -507,7 +548,6 @@ export function LandingPage () {
           </div>
         </div>
       </section>
-
       {/* Reviews Section */}
       <section id='reviews' className='py-20 bg-muted/30'>
         <div className='container mx-auto px-4'>
@@ -577,7 +617,6 @@ export function LandingPage () {
           </div>
         </div>
       </section>
-
       {/* CTA Section */}
       <section className='py-20 relative'>
         {/* Subtle background gradient */}
@@ -619,7 +658,6 @@ export function LandingPage () {
           </motion.div>
         </div>
       </section>
-
       {/* Footer */}
       <footer className='border-t bg-background py-12 relative overflow-hidden'>
         {/* Decorative floating blur elements */}

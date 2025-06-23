@@ -24,8 +24,11 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  FileText,
+  Loader2,
   Play,
-  RefreshCcw
+  RefreshCcw,
+  Sparkles
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import ShowResult from './ShowResult'
@@ -64,6 +67,7 @@ export function QuizComponent ({
   const [hasStarted, setHasStarted] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [startTime, setStartTime] = useState<number | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const { updateQuizInCourse } = useStore()
 
   console.log(showResults)
@@ -124,7 +128,7 @@ export function QuizComponent ({
         timeSpent={timeSpent}
         answers={answers}
         resetQuiz={() => {
-          setCurrentQuestion(1)
+          setShowResults(false)
           setAnswers({})
           setShowResults(false)
           setScore(0)
@@ -152,25 +156,32 @@ export function QuizComponent ({
   }
 
   const handleSubmit = async () => {
+    setSubmitting(true)
+
     const timeTaken = startTime
-      ? Math.floor((Date.now() - startTime) / 1000 / 60)
+      ? Math.floor((Date.now() - startTime))
       : 0
 
     setTimeSpent(timeTaken)
 
-    const response = await axios.post('/api/complete-quiz', {
-      quizId: quiz?.id,
-      courseId: course?.id,
-      timeTaken,
-      answers,
-    })
+    try {
+      const response = await axios.post('/api/complete-quiz', {
+        quizId: quiz?.id,
+        courseId: course?.id,
+        timeTaken,
+        answers
+      })
 
-    const updatedQuiz = response.data.quiz
-
-    updateQuizInCourse(course?.id!, updatedQuiz)
-
-    setShowResults(true)
-    onComplete()
+      const updatedQuiz = response.data.quiz
+      updateQuizInCourse(course?.id!, updatedQuiz)
+      setShowResults(true)
+      onComplete()
+    } catch (error) {
+      console.error(error)
+      // Optional: show error toast here
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const nextQuestion = () => {
@@ -204,6 +215,50 @@ export function QuizComponent ({
         resetQuiz={resetQuiz}
         onComplete={onComplete}
       />
+    )
+  }
+
+  if (submitting) {
+    return (
+      <motion.div
+        className='flex flex-col items-center justify-center h-96 text-center space-y-4'
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* Animated Icon */}
+        <motion.div
+          initial={{ rotate: 0 }}
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
+          className='rounded-full bg-primary/10 p-4'
+        >
+          <Loader2 className='h-10 w-10 text-primary animate-spin' />
+        </motion.div>
+
+        {/* Title */}
+        <motion.div
+          className='text-3xl font-extrabold text-primary'
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          Submitting your quiz...
+        </motion.div>
+
+        {/* Subtitle */}
+        <motion.p
+          className='text-muted-foreground text-base max-w-sm'
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          <span className='inline-flex items-center gap-1'>
+            <FileText className='h-4 w-4' /> Processing your answers
+          </span>{' '}
+          <Sparkles className='h-4 w-4 inline-block text-yellow-400 animate-ping ml-1' />
+        </motion.p>
+      </motion.div>
     )
   }
 
@@ -278,12 +333,12 @@ export function QuizComponent ({
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-lg'>{currentQ?.question}</CardTitle>
+          <CardTitle className='text-lg no-select'>{currentQ?.question}</CardTitle>
           {currentQ?.type === 'DESCRIPTIVE' && currentQ.rubric && (
             <CardDescription>
               <div className='mt-2'>
-                <p className='font-medium'>Marking Rubric:</p>
-                <ul className='list-disc list-inside text-sm mt-1'>
+                <p className='font-medium no-select'>Marking Rubric:</p>
+                <ul className='list-disc list-inside no-select text-sm mt-1'>
                   {currentQ.rubric.map((criteria, index) => (
                     <li key={index}>{criteria}</li>
                   ))}
@@ -301,14 +356,14 @@ export function QuizComponent ({
               }
             >
               {currentQ.options.map((option: string, index: number) => (
-                <div key={index} className='flex items-center space-x-2'>
+                <div key={index} className='flex no-select items-center space-x-2'>
                   <RadioGroupItem
                     value={index.toString()}
                     id={`q${currentQ.id}-${index}`}
                   />
                   <Label
                     htmlFor={`q${currentQ.id}-${index}`}
-                    className='flex-1 cursor-pointer'
+                    className='flex-1 no-select cursor-pointer'
                   >
                     {option}
                   </Label>
@@ -324,20 +379,20 @@ export function QuizComponent ({
                 handleAnswerChange(currentQ.id, value === 'true')
               }
             >
-              <div className='flex items-center space-x-2'>
+              <div className='flex no-select items-center space-x-2'>
                 <RadioGroupItem value='true' id={`q${currentQ.id}-true`} />
                 <Label
                   htmlFor={`q${currentQ.id}-true`}
-                  className='cursor-pointer'
+                  className='cursor-pointer no-select'
                 >
                   True
                 </Label>
               </div>
-              <div className='flex items-center space-x-2'>
+              <div className='flex no-select items-center space-x-2'>
                 <RadioGroupItem value='false' id={`q${currentQ.id}-false`} />
                 <Label
                   htmlFor={`q${currentQ.id}-false`}
-                  className='cursor-pointer'
+                  className='cursor-pointer no-select'
                 >
                   False
                 </Label>
@@ -347,11 +402,11 @@ export function QuizComponent ({
 
           {currentQ?.type === 'MULTIPLE_SELECT' && (
             <div className='space-y-3'>
-              <p className='text-sm text-muted-foreground'>
+              <p className='text-sm text-muted-foreground no-select'>
                 Select all correct answers:
               </p>
               {currentQ.options.map((option: string, index: number) => (
-                <div key={index} className='flex items-center space-x-2'>
+                <div key={index} className='flex no-select items-center space-x-2'>
                   <Checkbox
                     id={`q${currentQ.id}-${index}`}
                     checked={answers[currentQ.id]?.includes(index) || false}
@@ -372,7 +427,7 @@ export function QuizComponent ({
                   />
                   <Label
                     htmlFor={`q${currentQ.id}-${index}`}
-                    className='flex-1 cursor-pointer'
+                    className='flex-1 cursor-pointer no-select'
                   >
                     {option}
                   </Label>
@@ -382,7 +437,7 @@ export function QuizComponent ({
           )}
 
           {currentQ?.type === 'DESCRIPTIVE' && (
-            <div className='space-y-3'>
+            <div className='space-y-3 '>
               <Textarea
                 placeholder='Write your detailed answer here...'
                 value={answers[currentQ.id] || ''}

@@ -185,7 +185,7 @@ export function CoursePage ({ courseId }: CoursePageProps) {
   const handleLessonComplete = async (lessonId: string) => {
     const startTime = lessonStartTimeRef.current
     const timeTaken = startTime
-      ? Math.floor((Date.now() - startTime) / 1000 / 60)
+      ? Math.floor((Date.now() - startTime))
       : 0
 
     setCompletedLessons(prev => {
@@ -317,7 +317,7 @@ export function CoursePage ({ courseId }: CoursePageProps) {
                   </Button>
                 </Link>
                 <ThemeToggle />
-                <UserButton/>
+                <UserButton />
               </div>
             </div>
           </div>
@@ -327,7 +327,11 @@ export function CoursePage ({ courseId }: CoursePageProps) {
       {/* Main content */}
       <div className='grid grid-cols-1 lg:grid-cols-4 h-full'>
         {/* SIDEBAR - Sticky */}
-        <aside className='lg:col-span-1 sticky top-16 h-[calc(100vh-64px)] overflow-y-auto border-r p-4 scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#0f0f0f]'>
+        <aside
+          className='lg:col-span-1 sticky top-16 h-[calc(100vh-64px)] overflow-y-auto border-r p-4 scrollbar-thin 
+  scrollbar-thumb-gray-400 scrollbar-track-gray-200
+  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
+        >
           {isLoading ? (
             <motion.div
               className='lg:col-span-1 p-4'
@@ -384,7 +388,9 @@ export function CoursePage ({ courseId }: CoursePageProps) {
         {/* MAIN CONTENT - Scrollable */}
         <main
           ref={mainRef}
-          className='lg:col-span-3 overflow-y-auto h-[calc(100vh-64px)] p-6 border-r scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#0f0f0f]'
+          className='lg:col-span-3 overflow-y-auto h-[calc(100vh-64px)] p-6 border-r scrollbar-thin 
+  scrollbar-thumb-gray-400 scrollbar-track-gray-200
+  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
         >
           {isLoading ? (
             <div className='flex flex-col items-center justify-center h-full text-center'>

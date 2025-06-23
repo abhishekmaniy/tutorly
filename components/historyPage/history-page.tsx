@@ -19,6 +19,8 @@ import { BookOpen, Calendar, Clock, PlusCircle, Trophy } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Skeleton } from '../ui/skeleton'
+import { cn } from '@/lib/utils'
+import { Course } from '@/lib/types'
 
 const containerVariants = {
   hidden: {},
@@ -81,15 +83,25 @@ export function HistoryPage () {
     fetchData()
   }, [getToken, userId])
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Completed':
-        return 'bg-green-500'
-      case 'In Progress':
-        return 'bg-blue-500'
-      default:
-        return 'bg-gray-500'
+  function calculateGrade (course: Course): string {
+    let totalMarks = 0
+    let gainedMarks = 0
+
+    for (const lesson of course.lessons) {
+      if (lesson.quizz) {
+        totalMarks += lesson.quizz.totalMarks || 0
+        gainedMarks += lesson.quizz.gainedMarks || 0
+      }
     }
+
+    if (totalMarks === 0) return 'Not Graded'
+
+    const percentage = (gainedMarks / totalMarks) * 100
+
+    if (percentage >= 90) return 'Excellent'
+    if (percentage >= 75) return 'Good'
+    if (percentage >= 50) return 'Average'
+    return 'Needs Improvement'
   }
 
   const getGradeColor = (grade: string) => {
@@ -103,7 +115,7 @@ export function HistoryPage () {
       case 'Needs Improvement':
         return 'text-red-600'
       default:
-        return 'text-gray-600'
+        return 'text-muted-foreground'
     }
   }
 
@@ -138,7 +150,11 @@ export function HistoryPage () {
         </div>
       </nav>
 
-      <div className='flex-1 overflow-hidden'>
+      <div
+        className='flex-1 overflow-y-auto scrollbar-thin 
+  scrollbar-thumb-gray-400 scrollbar-track-gray-200
+  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
+      >
         <div className='container mx-auto px-4 py-4'>
           <motion.div
             className='mb-8'
@@ -177,7 +193,7 @@ export function HistoryPage () {
                 },
                 {
                   label: 'Completed',
-                  value: course2?.filter(c => c.status === 'COMPLETED').length,
+                  value: course2?.filter(c => c.completedAt !== null).length,
                   color: 'text-green-600',
                   icon: <Trophy className='h-8 w-8 text-green-600' />
                 },
@@ -190,8 +206,8 @@ export function HistoryPage () {
                 },
                 {
                   label: 'Total Time',
-                  value:
-                    (course2?.reduce((total, course) => {
+                  value: formatDurationFromMs(
+                    course2?.reduce((total, course) => {
                       const lessons = course.lessons
                       const lessonTimeSpent = lessons
                         .map(lesson => lesson?.timeTaken || 0)
@@ -200,7 +216,8 @@ export function HistoryPage () {
                         .map(lesson => lesson.quizz?.timeTaken || 0)
                         .reduce((acc, curr) => acc + curr, 0)
                       return total + lessonTimeSpent + quizTimeSpent
-                    }, 0) || 0) + 'h',
+                    }, 0) || 0
+                  ),
                   icon: <Calendar className='h-8 w-8 text-primary' />
                 }
               ].map((item, index) => (
@@ -246,109 +263,98 @@ export function HistoryPage () {
               {course2?.map(course => (
                 <motion.div key={course.id} variants={cardVariants}>
                   <Link href={`/course/${course.id}`}>
-                    <Card className='group cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] rounded-2xl overflow-hidden'>
-                      <div className='aspect-video relative overflow-hidden'>
-                        <img
-                          src={'/placeholder.svg'}
-                          alt={course.title}
-                          className='w-full h-full object-cover transition-transform group-hover:scale-110'
-                        />
-                        <div className='absolute top-3 right-3 z-10'>
-                          <Badge className={getStatusColor(course.status)}>
-                            {course.status}
-                          </Badge>
-                        </div>
-                      </div>
+                    <Card className='group cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] rounded-2xl overflow-hidden bg-background border'>
+                      <div className='p-4 relative'>
+                        <CardHeader className='pb-2 space-y-1'>
+                          <CardTitle className='text-xl font-semibold line-clamp-2 group-hover:text-primary transition-colors'>
+                            {course.title}
+                          </CardTitle>
+                          <CardDescription className='line-clamp-2 text-muted-foreground'>
+                            {course.description}
+                          </CardDescription>
+                        </CardHeader>
 
-                      <CardHeader className='pb-3 space-y-1'>
-                        <CardTitle className='text-lg line-clamp-2 group-hover:text-primary transition-colors'>
-                          {course.title}
-                        </CardTitle>
-                        <CardDescription className='line-clamp-2'>
-                          {course.description}
-                        </CardDescription>
-                      </CardHeader>
-
-                      <CardContent className='space-y-4'>
-                        {/* Progress */}
-                        <div>
-                          <div className='flex justify-between text-xs mb-1'>
-                            <span className='text-muted-foreground'>
-                              Progress
-                            </span>
-                            <span className='font-medium'>
-                              {course.progress}%
-                            </span>
-                          </div>
-                          <Progress value={course.progress} className='h-2' />
-                        </div>
-
-                        {/* Stats */}
-                        <div className='grid grid-cols-2 gap-4 text-sm text-muted-foreground'>
+                        <CardContent className='space-y-4 pt-2'>
+                          {/* Progress */}
                           <div>
-                            <p>Lessons</p>
-                            <p className='font-medium text-foreground'>
-                              {
-                                course.lessons.filter(
-                                  lesson => lesson.isCompleted
-                                ).length
-                              }
-                              /{course.lessons.length}
-                            </p>
+                            <div className='flex justify-between text-xs mb-1'>
+                              <span className='text-muted-foreground'>
+                                Progress
+                              </span>
+                              <span className='font-medium'>
+                                {course.progress}%
+                              </span>
+                            </div>
+                            <Progress value={course.progress} className='h-2' />
                           </div>
-                          <div>
-                            <p>Quizzes</p>
-                            <p className='font-medium text-foreground'>
-                              {
-                                course.lessons.filter(
-                                  lesson =>
-                                    lesson.quizz && lesson.quizz.isCompleted
-                                ).length
-                              }
-                              /{course.lessons.length}
-                            </p>
-                          </div>
-                        </div>
 
-                        {/* Grade and Time */}
-                        <div className='flex items-center justify-between text-sm'>
-                          <div className='flex items-center gap-1.5 text-muted-foreground'>
-                            <Clock className='h-4 w-4' />
-                            <span>
-                              {formatDurationFromMs(
-                                course.lessons.reduce((total, lesson) => {
-                                  const lessonTime = lesson?.timeTaken || 0
-                                  const quizTime = lesson.quizz?.timeTaken || 0
-                                  return total + lessonTime + quizTime
-                                }, 0)
-                              )}
+                          {/* Stats */}
+                          <div className='grid grid-cols-2 gap-4 text-sm'>
+                            <div>
+                              <p className='text-muted-foreground'>Lessons</p>
+                              <p className='font-medium'>
+                                {
+                                  course.lessons.filter(l => l.isCompleted)
+                                    .length
+                                }
+                                /{course.lessons.length}
+                              </p>
+                            </div>
+                            <div>
+                              <p className='text-muted-foreground'>Quizzes</p>
+                              <p className='font-medium'>
+                                {
+                                  course.lessons.filter(
+                                    lesson =>
+                                      lesson.quizz && lesson.quizz.isCompleted
+                                  ).length
+                                }
+                                /{course.lessons.length}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Grade and Time */}
+                          <div className='flex items-center justify-between text-sm'>
+                            <div className='flex items-center gap-2 text-muted-foreground'>
+                              <Clock className='h-4 w-4' />
+                              <span>
+                                {formatDurationFromMs(
+                                  course.lessons.reduce((total, lesson) => {
+                                    const lessonTime = lesson?.timeTaken || 0
+                                    const quizTime =
+                                      lesson.quizz?.timeTaken || 0
+                                    return total + lessonTime + quizTime
+                                  }, 0)
+                                )}
+                              </span>
+                            </div>
+                            <span
+                              className={`font-medium ${getGradeColor(
+                                calculateGrade(course)
+                              )}`}
+                            >
+                              {calculateGrade(course)}
                             </span>
                           </div>
-                          <span
-                            className={`font-medium ${getGradeColor(
-                              course.grade
-                            )}`}
-                          >
-                            {course.grade}
-                          </span>
-                        </div>
 
-                        {/* Dates */}
-                        <div className='text-xs text-muted-foreground space-y-0.5'>
-                          <p>
-                            Started:{' '}
-                            {new Date(course.createdAt).toLocaleDateString()}
-                          </p>
-                          {course.completedAt && (
+                          {/* Dates */}
+                          <div className='text-xs text-muted-foreground space-y-0.5'>
                             <p>
-                              Completed:{' '}
-                              {new Date(
-                                course.completedAt
-                              ).toLocaleDateString()}
+                              Started:{' '}
+                              {new Date(course.createdAt).toLocaleDateString()}
                             </p>
-                          )}
-                        </div>
-                      </CardContent>
+                            {course.completedAt && (
+                              <p>
+                                Completed:{' '}
+                                {new Date(
+                                  course.completedAt
+                                ).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </div>
                     </Card>
                   </Link>
                 </motion.div>
@@ -356,7 +362,7 @@ export function HistoryPage () {
             </motion.div>
           )}
         </div>
-      
+
         {!isLoading && course2?.length === 0 && (
           <motion.div
             className='text-center py-20'

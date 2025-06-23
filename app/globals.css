@@ -106,3 +106,9 @@
   border: 1px solid rgba(255, 255, 255, 0.125);
 }
 
+
+.no-select {
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none;    /* Firefox */
+}

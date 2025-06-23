@@ -231,6 +231,14 @@ const CourseContent = ({
                           )
 
                         case 'GRAPH':
+                          if (
+                            !block.graph?.data ||
+                            !Array.isArray(block.graph.data)
+                          )
+                            return null
+                          const xKey = block.graph.xKey || 'label'
+                          const yKey = block.graph.yKey || 'value'
+
                           return (
                             <motion.div
                               key={block.id}
@@ -243,15 +251,15 @@ const CourseContent = ({
                               }}
                             >
                               <ResponsiveContainer>
-                                <LineChart data={block.graph?.data || []}>
+                                <LineChart data={block.graph.data}>
                                   <CartesianGrid strokeDasharray='3 3' />
-                                  <XAxis dataKey={block.graph?.xKey || 'x'} />
+                                  <XAxis dataKey={xKey} />
                                   <YAxis />
                                   <Tooltip />
                                   <Line
                                     type='monotone'
-                                    dataKey={block.graph?.yKey || 'y'}
-                                    stroke='#8884d8'
+                                    dataKey={yKey}
+                                    stroke='#6366f1' // Indigo-500 Tailwind color
                                     strokeWidth={2}
                                   />
                                 </LineChart>

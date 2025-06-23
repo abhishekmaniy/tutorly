@@ -295,27 +295,29 @@ const Sidebar = ({
             </Button>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Button
-              variant={courseCompleted ? 'secondary' : 'ghost'}
-              className='w-full justify-start'
-              onClick={() => {
-                setShowAnalytics(false)
-                setShowSummary(false)
-                setShowKeyPoints(false)
-                setSelectedLesson(null)
-                setSelectedQuiz(null)
-                setCourseCompleted(true)
-              }}
+          {progress === 100 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
             >
-              <CheckCircle className='mr-3 h-5 w-5' />
-              Mark as Completed
-            </Button>
-          </motion.div>
+              <Button
+                variant={courseCompleted ? 'secondary' : 'ghost'}
+                className='w-full justify-start'
+                onClick={() => {
+                  setShowAnalytics(false)
+                  setShowSummary(false)
+                  setShowKeyPoints(false)
+                  setSelectedLesson(null)
+                  setSelectedQuiz(null)
+                  setCourseCompleted(true)
+                }}
+              >
+                <CheckCircle className='mr-3 h-5 w-5' />
+                Mark as Completed
+              </Button>
+            </motion.div>
+          )}
         </CardContent>
       </Card>
     </div>

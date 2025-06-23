@@ -21,7 +21,7 @@ export default function RootLayout ({
 }) {
   return (
     <ClerkProvider>
-      <html lang='en' suppressHydrationWarning>
+      <html lang='en' className="scroll-smooth" suppressHydrationWarning>
         <body className={inter.className}>
           <ThemeProvider
             attribute='class'

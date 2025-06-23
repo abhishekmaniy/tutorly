@@ -21,7 +21,7 @@ const ShowResult = ({
   answers: Record<string, any>
   resetQuiz: any
   onComplete: any
-  handleContinueLearning:any
+  handleContinueLearning: any
 }) => {
   const getGrade = (score: number, total: number) => {
     const percentage = (score / total) * 100
@@ -35,6 +35,12 @@ const ShowResult = ({
 
   const gradeInfo = getGrade(quiz.gainedMarks, quiz?.totalMarks!)
   const percentage = Math.round((quiz.gainedMarks / quiz?.totalMarks!) * 100)
+  function formatMinutes (milliseconds: number): string {
+    const totalMinutes = Math.floor(milliseconds / 1000 / 60)
+    const h = Math.floor(totalMinutes / 60)
+    const m = totalMinutes % 60
+    return h > 0 ? `${h}h ${m}m` : `${m}m`
+  }
 
   return (
     <div className='space-y-6'>
@@ -63,7 +69,9 @@ const ShowResult = ({
           <div className='grid grid-cols-2 gap-4 text-center'>
             <div>
               <p className='text-sm text-muted-foreground'>Time Taken</p>
-              <p className='text-lg font-semibold'>{timeSpent} min</p>
+              <p className='text-lg font-semibold'>
+                {formatMinutes(timeSpent)}
+              </p>
             </div>
             <div>
               <p className='text-sm text-muted-foreground'>Status</p>
@@ -119,7 +127,7 @@ const ShowResult = ({
         <Button onClick={resetQuiz} variant='outline'>
           Retake Quiz
         </Button>
-        <Button onClick={ handleContinueLearning}>Continue Learning</Button>
+        <Button onClick={handleContinueLearning}>Continue Learning</Button>
       </div>
     </div>
   )

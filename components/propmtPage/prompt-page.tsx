@@ -20,9 +20,12 @@ import {
   ArrowRight,
   BookOpen,
   Clock,
+  GraduationCap,
   History,
   Loader2,
-  Sparkles
+  Rocket,
+  Sparkles,
+  TrendingUp
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -59,6 +62,11 @@ export function PromptPage () {
   const [error, setError] = useState<string | null>(null)
   const [isMounted, setIsMounted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [timeCommitment, setTimeCommitment] = useState('')
+  const [goal, setGoal] = useState('')
+  const [learningStyle, setLearningStyle] = useState<
+    'Text-based' | 'Visual Diagrams' | 'Project-focused' | ''
+  >('')
   const [generationProgress, setGenerationProgress] = useState<{
     syllabus?: any
     lessons: Lesson[]
@@ -72,13 +80,23 @@ export function PromptPage () {
     quizzes: []
   })
 
+  const [showPersonalization, setShowPersonalization] = useState(false)
+  const [level, setLevel] = useState<
+    'Beginner' | 'Intermediate' | 'Advanced' | ''
+  >('')
+  const [preferredTopics, setPreferredTopics] = useState('')
+  const [dislikedTopics, setDislikedTopics] = useState('')
+
   console.log('generationProgress', generationProgress)
 
   const router = useRouter()
   const { getToken, userId } = useAuth()
-  const { courses, setUser } = useStore()
+  const { user, setUser } = useStore()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const courses = user?.courses
+  const personalizationRef = useRef<HTMLDivElement | null>(null)
+  const personalizationBottomRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     setIsMounted(true)
@@ -108,153 +126,163 @@ export function PromptPage () {
     return () => controller.abort()
   }, [userId])
 
-  const handleGenerateCourse = async () => {
-    if (!prompt.trim()) return
+  const styles: ('Text-based' | 'Visual Diagrams' | 'Project-focused' | '')[] =
+    ['Text-based', 'Visual Diagrams', 'Project-focused', '']
 
-    setIsGenerating(true)
-    setError(null)
-    setStreamMessages([])
-    setGenerationProgress({
-      lessons: [],
-      quizzes: []
-    })
+ const handleGenerateCourse = async () => {
+  if (!prompt.trim()) return
 
-    abortControllerRef.current?.abort()
-    abortControllerRef.current = new AbortController() // for cleanup purposes
+  setIsGenerating(true)
+  setError(null)
+  setStreamMessages([])
+  setGenerationProgress({
+    lessons: [],
+    quizzes: []
+  })
 
-    let socket: WebSocket | null = null
-    let courseId: string | null = null
+  abortControllerRef.current?.abort()
+  abortControllerRef.current = new AbortController()
 
-    try {
-      const token = await getToken()
-      const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL}`
+  let socket: WebSocket | null = null
+  let courseId: string | null = null
 
-      socket = new WebSocket(wsUrl)
+  try {
+    const token = await getToken()
+    const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL}`
 
-      socket.onopen = () => {
-        socket?.send(
-          JSON.stringify({
-            topic: prompt,
-            userId, // 👈 include userId for backend
-            token
-          })
-        )
-      }
+    socket = new WebSocket(wsUrl)
 
-      socket.onmessage = event => {
-        try {
-          const parsed = JSON.parse(event.data)
-
-          if (parsed.step === 'syllabus' && parsed.status === 'completed') {
-            setGenerationProgress(prev => ({
-              ...prev,
-              syllabus: parsed.data,
-              currentStep: 'syllabus'
-            }))
+    socket.onopen = () => {
+      socket?.send(
+        JSON.stringify({
+          topic: prompt,
+          userId,
+          token,
+          personalization: {
+            level,
+            preferredTopics,
+            dislikedTopics,
+            goal,
+            timeCommitment,
+            learningStyle
           }
+        })
+      )
+    }
 
-          if (parsed.step === 'lesson' && parsed.data) {
-            setGenerationProgress(prev => ({
-              ...prev,
-              lessons: [...prev.lessons, parsed.data],
-              currentStep: 'lesson'
-            }))
-          }
+    socket.onmessage = event => {
+      try {
+        const parsed = JSON.parse(event.data)
 
-          if (parsed.step === 'quiz' && parsed.data) {
-            setGenerationProgress(prev => ({
-              ...prev,
-              quizzes: [...prev.quizzes, parsed.data],
-              currentStep: 'quiz'
-            }))
-          }
-
-          if (parsed.step === 'summary' && parsed.data) {
-            setGenerationProgress(prev => ({
-              ...prev,
-              summary: parsed.data,
-              currentStep: 'summary'
-            }))
-          }
-
-          if (parsed.step === 'keyPoints' && parsed.data) {
-            setGenerationProgress(prev => ({
-              ...prev,
-              keyPoints: parsed.data,
-              currentStep: 'keyPoints'
-            }))
-          }
-
-          if (parsed.step === 'analytics' && parsed.data) {
-            setGenerationProgress(prev => ({
-              ...prev,
-              analytics: parsed.data,
-              currentStep: 'analytics'
-            }))
-          }
-
-          if (parsed.step === 'contentBlock') {
-            setGenerationProgress(prev => ({
-              ...prev,
-              lessons: prev.lessons.map(lesson =>
-                lesson.title === parsed.lessonTitle
-                  ? {
-                      ...lesson,
-                      contentBlocks: [
-                        ...(lesson.contentBlocks || []),
-                        parsed.contentBlock
-                      ]
-                    }
-                  : lesson
-              ),
-              currentStep: 'contentBlock'
-            }))
-          }
-
-          if (parsed.step === 'completed' && parsed.courseId) {
-            courseId = parsed.courseId
-            router.push(`/course/${courseId}`)
-          }
-
-          if (parsed.step === 'error' && parsed.message) {
-            setError(parsed.message)
-          }
-
-          if (typeof parsed === 'string') {
-            setStreamMessages(prev => [...prev, parsed])
-          }
-        } catch (err) {
-          console.error('Error parsing message', err)
+        if (parsed.step === 'syllabus' && parsed.status === 'completed') {
+          setGenerationProgress(prev => ({
+            ...prev,
+            syllabus: parsed.data,
+            currentStep: 'syllabus'
+          }))
         }
-      }
 
-      socket.onerror = () => {
-        setError('WebSocket error during course generation')
-      }
+        if (parsed.step === 'lesson' && parsed.data) {
+          setGenerationProgress(prev => ({
+            ...prev,
+            lessons: [...prev.lessons, parsed.data],
+            currentStep: 'lesson'
+          }))
+        }
 
-      socket.onclose = () => {
-        setIsGenerating(false)
+        if (parsed.step === 'quiz' && parsed.data) {
+          setGenerationProgress(prev => ({
+            ...prev,
+            quizzes: [...prev.quizzes, parsed.data],
+            currentStep: 'quiz'
+          }))
+        }
+
+        if (parsed.step === 'summary' && parsed.data) {
+          setGenerationProgress(prev => ({
+            ...prev,
+            summary: parsed.data,
+            currentStep: 'summary'
+          }))
+        }
+
+        if (parsed.step === 'keyPoints' && parsed.data) {
+          setGenerationProgress(prev => ({
+            ...prev,
+            keyPoints: parsed.data,
+            currentStep: 'keyPoints'
+          }))
+        }
+
+        if (parsed.step === 'analytics' && parsed.data) {
+          setGenerationProgress(prev => ({
+            ...prev,
+            analytics: parsed.data,
+            currentStep: 'analytics'
+          }))
+        }
+
+        if (parsed.step === 'contentBlock') {
+          setGenerationProgress(prev => ({
+            ...prev,
+            lessons: prev.lessons.map(lesson =>
+              lesson.title === parsed.lessonTitle
+                ? {
+                    ...lesson,
+                    contentBlocks: [
+                      ...(lesson.contentBlocks || []),
+                      parsed.contentBlock
+                    ]
+                  }
+                : lesson
+            ),
+            currentStep: 'contentBlock'
+          }))
+        }
+
+        if (parsed.step === 'completed' && parsed.courseId) {
+          courseId = parsed.courseId
+          router.push(`/course/${courseId}`)
+        }
+
+        if (parsed.step === 'error' && parsed.message) {
+          setError(parsed.message)
+        }
+
+        if (typeof parsed === 'string') {
+          setStreamMessages(prev => [...prev, parsed])
+        }
+      } catch (err) {
+        console.error('Error parsing message', err)
       }
-    } catch (err) {
-      console.error(err)
-      setError('Failed to start WebSocket course generation.')
+    }
+
+    socket.onerror = () => {
+      setError('WebSocket error during course generation')
+    }
+
+    socket.onclose = () => {
       setIsGenerating(false)
     }
+  } catch (err) {
+    console.error(err)
+    setError('Failed to start WebSocket course generation.')
+    setIsGenerating(false)
+  }
 
-    return () => {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.close()
-      }
+  return () => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.close()
     }
   }
+}
+
 
   useEffect(() => {
     return () => abortControllerRef.current?.abort()
   }, [])
 
   if (!isMounted) return null
-
-  console.log(streamMessages)
 
   return (
     <div className='h-screen overflow-hidden bg-background'>
@@ -283,10 +311,14 @@ export function PromptPage () {
         </div>
       </nav>
 
-      <div className='container mx-auto px-4 py-8'>
-        <div className='grid gap-8 lg:grid-cols-4'>
+      <div className='flex-1 overflow-hidden'>
+        <div className='grid grid-cols-1 lg:grid-cols-4 h-full'>
           {/* Sidebar - Recent Courses */}
-          <aside className='lg:col-span-1 sticky top-16 h-[calc(100vh-64px)] overflow-y-auto border-r p-4 scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#0f0f0f]'>
+          <aside
+            className='lg:col-span-1 sticky top-16 h-[calc(100vh-64px)] overflow-y-auto border-r p-4 scrollbar-thin 
+  scrollbar-thumb-gray-400 scrollbar-track-gray-200
+  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
+          >
             {isLoading ? (
               <motion.div
                 className='lg:col-span-1 p-4'
@@ -322,8 +354,8 @@ export function PromptPage () {
                 </p>
 
                 <div className='space-y-3'>
-                  {courses.length > 0 ? (
-                    courses.map(course => (
+                  {courses?.length! > 0 ? (
+                    courses?.map(course => (
                       <Link key={course.id} href={`/course/${course.id}`}>
                         <Card className='cursor-pointer p-3 hover:bg-muted transition rounded-lg'>
                           <div className='flex justify-between items-center mb-1'>
@@ -347,9 +379,14 @@ export function PromptPage () {
                       </Link>
                     ))
                   ) : (
-                    <Card>
-                      <CardContent className='text-gray-500 justify-center items-center '>
-                        No Course Generated Yet!
+                    <Card className='border-dashed border-2 border-gray-300 bg-muted/50 shadow-none'>
+                      <CardContent className='flex flex-col items-center justify-center py-16 text-center text-gray-500'>
+                        <div className='text-xl font-medium'>
+                          No Course Generated Yet
+                        </div>
+                        <div className='mt-2 text-sm text-muted-foreground'>
+                          Start generating a course to see it here.
+                        </div>
                       </CardContent>
                     </Card>
                   )}
@@ -360,7 +397,11 @@ export function PromptPage () {
 
           {/* Main Content - Course Generation */}
           {isGenerating ? (
-            <div className='fixed inset-x-0 top-16 z-40 h-[calc(100vh-64px)] flex flex-col items-center justify-start bg-background/80 backdrop-blur-sm overflow-y-auto scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#0f0f0f]'>
+            <div
+              className='fixed inset-x-0 top-16 z-40 h-[calc(100vh-64px)] flex flex-col items-center justify-start bg-background/80 backdrop-blur-sm overflow-y-auto scrollbar-thin 
+  scrollbar-thumb-gray-400 scrollbar-track-gray-200
+  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
+            >
               {/* Animated Icon */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -417,7 +458,11 @@ export function PromptPage () {
                     <CardHeader>
                       <CardTitle>Lessons</CardTitle>
                     </CardHeader>
-                    <CardContent className='overflow-y-auto max-h-[400px] pr-2 scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#0f0f0f]'>
+                    <CardContent
+                      className='overflow-y-auto max-h-[400px] pr-2 scrollbar-thin 
+  scrollbar-thumb-gray-400 scrollbar-track-gray-200
+  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
+                    >
                       <ExpandableLessonCard
                         lessons={generationProgress.lessons}
                       />
@@ -430,7 +475,11 @@ export function PromptPage () {
                     <CardHeader>
                       <CardTitle>Quizzes</CardTitle>
                     </CardHeader>
-                    <CardContent className='overflow-y-auto max-h-[400px] pr-2 scrollbar-thin scrollbar-thumb-[#4b5563] scrollbar-track-[#0f0f0f]'>
+                    <CardContent
+                      className='overflow-y-auto max-h-[400px] pr-2 scrollbar-thin 
+  scrollbar-thumb-gray-400 scrollbar-track-gray-200
+  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
+                    >
                       <ExpandableQuizCard quizes={generationProgress.quizzes} />
                     </CardContent>
                   </Card>
@@ -485,7 +534,9 @@ export function PromptPage () {
             </div>
           ) : (
             <motion.div
-              className='lg:col-span-3'
+              className='lg:col-span-3 h-[calc(100vh-64px)] overflow-y-auto pr-2 scrollbar-thin 
+             scrollbar-thumb-gray-400 scrollbar-track-gray-200
+             dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
               initial='hidden'
               animate='visible'
               variants={{
@@ -493,9 +544,10 @@ export function PromptPage () {
                 visible: {}
               }}
             >
-              <div className='max-w-2xl mx-auto'>
+              <div className='max-w-2xl mx-auto '>
                 {/* Title & Description */}
                 <motion.div
+                  ref={personalizationRef}
                   className='text-center mb-8'
                   variants={fadeUp}
                   custom={0.1}
@@ -542,29 +594,205 @@ export function PromptPage () {
                         />
                       </motion.div>
 
-                      <motion.div
-                        className='flex flex-col sm:flex-row gap-4'
-                        variants={fadeUp}
-                        custom={0.6}
-                      >
-                        <Button
-                          onClick={handleGenerateCourse}
-                          disabled={isGenerating || !prompt.trim()}
-                          className='flex-1'
-                          size='lg'
-                        >
-                          {isGenerating ? (
-                            <>
-                              <div className='mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent' />
-                              Generating Course...
-                            </>
-                          ) : (
-                            <>
-                              Generate Course
-                              <ArrowRight className='ml-2 h-4 w-4' />
-                            </>
-                          )}
-                        </Button>
+                      <motion.div variants={fadeUp} custom={0.55}>
+                        {showPersonalization ? (
+                          <Card className='mt-6 border border-border bg-background/90 backdrop-blur-md shadow-lg rounded-xl'>
+                            <CardHeader>
+                              <CardTitle className='text-xl font-semibold'>
+                                Personalize Your Course
+                              </CardTitle>
+                              <CardDescription>
+                                Tailor the course to your experience level and
+                                preferences.
+                              </CardDescription>
+                            </CardHeader>
+
+                            <CardContent className='space-y-6'>
+                              {/* Level */}
+                              <div>
+                                <label className='block text-sm font-medium mb-2 text-foreground'>
+                                  Select Your Level
+                                </label>
+                                <div className='grid grid-cols-3 gap-2'>
+                                  {[
+                                    {
+                                      label: 'Beginner',
+                                      icon: Rocket,
+                                      color: 'text-green-500'
+                                    },
+                                    {
+                                      label: 'Intermediate',
+                                      icon: TrendingUp,
+                                      color: 'text-yellow-500'
+                                    },
+                                    {
+                                      label: 'Advanced',
+                                      icon: GraduationCap,
+                                      color: 'text-red-500'
+                                    }
+                                  ].map(({ label, icon: Icon, color }) => (
+                                    <Button
+                                      key={label}
+                                      variant={
+                                        level === label ? 'default' : 'outline'
+                                      }
+                                      onClick={() =>
+                                        setLevel(label as typeof level)
+                                      }
+                                      className='flex items-center gap-3 px-4 py-2'
+                                    >
+                                      <Icon className={`h-5 w-5 ${color}`} />
+                                      <span className='text-sm'>{label}</span>
+                                    </Button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Preferred Topics */}
+                              <div>
+                                <label className='block text-sm font-medium mb-2 text-foreground'>
+                                  Preferred Topics{' '}
+                                  <span className='text-muted-foreground'>
+                                    (optional)
+                                  </span>
+                                </label>
+                                <Textarea
+                                  placeholder='e.g., React Hooks, State Management, Deployment'
+                                  value={preferredTopics}
+                                  onChange={e =>
+                                    setPreferredTopics(e.target.value)
+                                  }
+                                  className='resize-none'
+                                />
+                              </div>
+
+                              {/* Disliked Topics */}
+                              <div>
+                                <label className='block text-sm font-medium mb-2 text-foreground'>
+                                  Topics to Avoid{' '}
+                                  <span className='text-muted-foreground'>
+                                    (optional)
+                                  </span>
+                                </label>
+                                <Textarea
+                                  placeholder='e.g., Redux, TypeScript'
+                                  value={dislikedTopics}
+                                  onChange={e =>
+                                    setDislikedTopics(e.target.value)
+                                  }
+                                  className='resize-none'
+                                />
+                              </div>
+
+                              {/* Goal */}
+
+                              <div>
+                                <label className='block text-sm font-medium mb-2 text-foreground'>
+                                  What’s your main goal?{' '}
+                                  <span className='text-muted-foreground'>
+                                    (optional)
+                                  </span>
+                                </label>
+                                <Textarea
+                                  placeholder='e.g., I want to build a portfolio project / prepare for interviews / get certified'
+                                  value={goal}
+                                  onChange={e => setGoal(e.target.value)}
+                                  className='resize-none'
+                                />
+                              </div>
+
+                              {/* Learning Style */}
+                              <div>
+                                <label className='block text-sm font-medium mb-2 text-foreground'>
+                                  Preferred Learning Style{' '}
+                                  <span className='text-muted-foreground'>
+                                    (optional)
+                                  </span>
+                                </label>
+                                <div ref={personalizationBottomRef} />
+                                <div className='grid grid-cols-3 gap-2'>
+                                  {styles.map(style => (
+                                    <Button
+                                      key={style}
+                                      variant={
+                                        learningStyle === style
+                                          ? 'default'
+                                          : 'outline'
+                                      }
+                                      onClick={() => setLearningStyle(style)}
+                                      className='text-xs'
+                                    >
+                                      {style || 'No Preference'}
+                                    </Button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Time Commitment */}
+                              <div>
+                                <label className='block text-sm font-medium mb-2 text-foreground'>
+                                  How many hours/week can you commit?{' '}
+                                  <span className='text-muted-foreground'>
+                                    (optional)
+                                  </span>
+                                </label>
+                                <input
+                                  type='number'
+                                  min={1}
+                                  placeholder='e.g., 5'
+                                  value={timeCommitment}
+                                  onChange={e =>
+                                    setTimeCommitment(e.target.value)
+                                  }
+                                  className='w-full rounded-md border px-3 py-2 bg-background border-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary'
+                                />
+                              </div>
+
+                              {/* Generate Button */}
+                              <Button
+                                onClick={handleGenerateCourse}
+                                disabled={isGenerating || !prompt.trim()}
+                                className='w-full text-base py-2'
+                                size='lg'
+                              >
+                                {isGenerating ? (
+                                  <>
+                                    <div className='mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent' />
+                                    Generating Course...
+                                  </>
+                                ) : (
+                                  <>
+                                    Generate Course
+                                    <ArrowRight className='ml-2 h-4 w-4' />
+                                  </>
+                                )}
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ) : (
+                          <Button
+                            onClick={() => {
+                              setShowPersonalization(true)
+                              setTimeout(() => {
+                                personalizationRef.current?.scrollIntoView({
+                                  behavior: 'smooth',
+                                  block: 'start'
+                                })
+                                // Scroll to the bottom after showing personalization
+                                personalizationBottomRef.current?.scrollIntoView(
+                                  {
+                                    behavior: 'smooth',
+                                    block: 'end'
+                                  }
+                                )
+                              }, 100)
+                            }}
+                            disabled={!prompt.trim()}
+                            className='w-full mt-4'
+                          >
+                            Next: Personalize
+                          </Button>
+                        )}
                       </motion.div>
 
                       {/* Example Prompts */}

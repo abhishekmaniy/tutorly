@@ -29,9 +29,10 @@ const CourseAnalytics = ({
   completedQuizzes: string[]
   completedLessons: string[]
 }) => {
-  function formatMinutes (minutes: number) {
-    const h = Math.floor(minutes / 60)
-    const m = minutes % 60
+  function formatMinutes (milliseconds: number): string {
+    const totalMinutes = Math.floor(milliseconds / 1000 / 60)
+    const h = Math.floor(totalMinutes / 60)
+    const m = totalMinutes % 60
     return h > 0 ? `${h}h ${m}m` : `${m}m`
   }
 
@@ -52,9 +53,10 @@ const CourseAnalytics = ({
       date: new Date(q!.completedAt!)
     }))
 
-  const allCompletedItems = [...completedLessonsWithDate, ...completedQuizzesWithDate].sort(
-    (a, b) => a.date.getTime() - b.date.getTime()
-  )
+  const allCompletedItems = [
+    ...completedLessonsWithDate,
+    ...completedQuizzesWithDate
+  ].sort((a, b) => a.date.getTime() - b.date.getTime())
 
   const lessonCountsByDay = new Map<number, number>()
   const quizCountsByDay = new Map<number, number>()
@@ -62,7 +64,10 @@ const CourseAnalytics = ({
   allCompletedItems.forEach(item => {
     const dayNumber = differenceInCalendarDays(item.date, courseStartDate) + 1
     if (item.type === 'lesson') {
-      lessonCountsByDay.set(dayNumber, (lessonCountsByDay.get(dayNumber) || 0) + 1)
+      lessonCountsByDay.set(
+        dayNumber,
+        (lessonCountsByDay.get(dayNumber) || 0) + 1
+      )
     } else if (item.type === 'quiz') {
       quizCountsByDay.set(dayNumber, (quizCountsByDay.get(dayNumber) || 0) + 1)
     }
@@ -88,25 +93,35 @@ const CourseAnalytics = ({
   }))
 
   return (
-    <div className=' overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/40 scrollbar-track-transparent pr-2"' >
+    <div
+      className=' overflow-y-auto scrollbar-thin 
+  scrollbar-thumb-gray-400 scrollbar-track-gray-200
+  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900  pr-2"'
+    >
       <div className='flex items-center mb-6'>
         <BarchartGraph className='mr-3 h-8 w-8 text-primary' />
         <div>
           <h1 className='text-3xl font-bold'>Course Analytics</h1>
-          <p className='text-muted-foreground'>Your learning performance and insights</p>
+          <p className='text-muted-foreground'>
+            Your learning performance and insights
+          </p>
         </div>
       </div>
 
       <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6'>
         <Card>
           <CardHeader className='pb-2'>
-            <CardTitle className='text-sm font-medium'>Total Time Spent</CardTitle>
+            <CardTitle className='text-sm font-medium'>
+              Total Time Spent
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>{formatMinutes(analyticsData.timeSpent.total)}</div>
+            <div className='text-2xl font-bold'>
+              {formatMinutes(analyticsData.timeSpent.total)}
+            </div>
             <p className='text-xs text-muted-foreground'>
-              Lessons: {formatMinutes(analyticsData.timeSpent.lessons)} | Quizzes:{' '}
-              {formatMinutes(analyticsData.timeSpent.quizzes)}
+              Lessons: {formatMinutes(analyticsData.timeSpent.lessons)} |
+              Quizzes: {formatMinutes(analyticsData.timeSpent.quizzes)}
             </p>
           </CardContent>
         </Card>
@@ -116,7 +131,9 @@ const CourseAnalytics = ({
             <CardTitle className='text-sm font-medium'>Average Score</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>{analyticsData.performance.averageScore}%</div>
+            <div className='text-2xl font-bold'>
+              {analyticsData.performance.averageScore}%
+            </div>
             <p className='text-xs text-muted-foreground'>
               {analyticsData.performance.passedQuizzes}/
               {analyticsData.performance.totalQuizzes} quizzes passed
@@ -132,7 +149,9 @@ const CourseAnalytics = ({
             <div className='text-2xl font-bold text-green-600'>
               {analyticsData.performance.grade}
             </div>
-            <p className='text-xs text-muted-foreground'>Based on your performance</p>
+            <p className='text-xs text-muted-foreground'>
+              Based on your performance
+            </p>
           </CardContent>
         </Card>
       </div>
