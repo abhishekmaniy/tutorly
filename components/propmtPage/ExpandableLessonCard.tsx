@@ -151,7 +151,10 @@ export function ExpandableLessonCard ({ lessons }: { lessons: Lesson[] }) {
               <motion.div
                 layoutId={`card-${lesson.title}-${id}`}
                 key={`card-${lesson.title}-${id}`}
-                onClick={() => setActive(lesson)}
+                onClick={() => {
+                  setActive(lesson)
+                  window.scrollTo({ top: 0, behavior: 'smooth' }) // 
+                }}
                 className='p-4 flex flex-col md:flex-row justify-between items-center hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-xl cursor-pointer'
               >
                 <div className='flex gap-4 flex-col md:flex-row'>

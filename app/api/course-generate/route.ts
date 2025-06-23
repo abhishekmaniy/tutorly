@@ -41,7 +41,7 @@ async function generateValidJsonWithRetries (
   }
 }
 
-export async function POST (req: NextRequest) {
+export async function POST (req: pcoursNextRequest) {
   const { userId } = getAuth(req)
   if (!userId) return new Response('Unauthorized', { status: 401 })
 

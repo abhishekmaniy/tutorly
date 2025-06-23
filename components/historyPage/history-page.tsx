@@ -15,7 +15,15 @@ import { useStore } from '@/store/store'
 import { useAuth, UserButton } from '@clerk/nextjs'
 import axios from 'axios'
 import { circOut, motion } from 'framer-motion'
-import { BookOpen, Calendar, Clock, PlusCircle, Trophy } from 'lucide-react'
+import {
+  BookOpen,
+  Calendar,
+  Clock,
+  Menu,
+  PlusCircle,
+  Trophy,
+  X
+} from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Skeleton } from '../ui/skeleton'
@@ -60,6 +68,7 @@ export function HistoryPage () {
   const { user, setUser } = useStore()
   const { getToken, userId } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const course2 = user?.courses
 
@@ -132,12 +141,14 @@ export function HistoryPage () {
       <nav className='sticky top-0 z-50 border-b bg-background'>
         <div className='container mx-auto px-4'>
           <div className='flex h-16 items-center justify-between'>
+            {/* Logo */}
             <Link href='/' className='flex items-center space-x-2'>
               <BookOpen className='h-8 w-8 text-primary' />
               <span className='text-2xl font-bold'>Tutorly</span>
             </Link>
 
-            <div className='flex items-center space-x-4'>
+            {/* Desktop Menu */}
+            <div className='hidden md:flex items-center gap-4'>
               <Link href='/prompt'>
                 <Button variant='outline' size='sm'>
                   Create New Course
@@ -146,10 +157,41 @@ export function HistoryPage () {
               <ThemeToggle />
               <UserButton />
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className='md:hidden p-2 rounded focus:outline-none'
+              aria-label='Toggle Menu'
+            >
+              {menuOpen ? (
+                <X className='h-6 w-6' />
+              ) : (
+                <Menu className='h-6 w-6' />
+              )}
+            </button>
           </div>
+
+          {/* Mobile Menu */}
+          {menuOpen && (
+            <div className='md:hidden flex flex-col gap-2 py-2'>
+              <Link
+                href='/prompt'
+                onClick={() => setMenuOpen(false)}
+                className='px-4 py-2 text-sm font-medium hover:bg-muted rounded'
+              >
+                Create New Course
+              </Link>
+              <div className='px-4 py-2'>
+                <ThemeToggle />
+              </div>
+              <div className='px-4 py-2'>
+                <UserButton />
+              </div>
+            </div>
+          )}
         </div>
       </nav>
-
       <div
         className='flex-1 overflow-y-auto scrollbar-thin 
   scrollbar-thumb-gray-400 scrollbar-track-gray-200
@@ -157,30 +199,30 @@ export function HistoryPage () {
       >
         <div className='container mx-auto px-4 py-4'>
           <motion.div
-            className='mb-8'
+            className='mb-8 text-center md:text-left'
             initial='hidden'
             animate='visible'
             variants={itemVariants}
           >
-            <h1 className='text-4xl font-bold mb-2'>Your Learning History</h1>
-            <p className='text-muted-foreground text-lg'>
+            <h1 className='text-3xl sm:text-4xl font-bold mb-2'>
+              Your Learning History
+            </h1>
+            <p className='text-muted-foreground text-base sm:text-lg'>
               Track your progress across all courses and continue your learning
-              journey
+              journey.
             </p>
           </motion.div>
 
           {/* Stats Overview */}
-          {/* ✅ Loading Skeletons for Stats Overview */}
-
           {isLoading ? (
-            <div className='grid gap-6 md:grid-cols-4 mb-8'>
+            <div className='grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8'>
               {Array.from({ length: 4 }).map((_, index) => (
                 <Skeleton key={index} className='h-24 w-full rounded-lg' />
               ))}
             </div>
           ) : (
             <motion.div
-              className='grid gap-6 md:grid-cols-4 mb-8'
+              className='grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8'
               variants={containerVariants}
               initial='hidden'
               animate='visible'
@@ -222,7 +264,7 @@ export function HistoryPage () {
                 }
               ].map((item, index) => (
                 <motion.div key={index} variants={itemVariants}>
-                  <Card>
+                  <Card className='h-full'>
                     <CardContent className='pt-6'>
                       <div className='flex items-center justify-between'>
                         <div>
@@ -248,14 +290,14 @@ export function HistoryPage () {
         {/* Courses Grid */}
         <div className='flex-1 overflow-y-auto px-4 pb-6'>
           {isLoading ? (
-            <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
+            <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
               {Array.from({ length: 6 }).map((_, index) => (
-                <Skeleton key={index} className='h-[300px] w-full rounded-xl' />
+                <Skeleton key={index} className='h-[280px] w-full rounded-xl' />
               ))}
             </div>
           ) : (
             <motion.div
-              className='grid gap-4 md:grid-cols-2 lg:grid-cols-3'
+              className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
               variants={containerVariants}
               initial='hidden'
               animate='visible'
@@ -263,13 +305,13 @@ export function HistoryPage () {
               {course2?.map(course => (
                 <motion.div key={course.id} variants={cardVariants}>
                   <Link href={`/course/${course.id}`}>
-                    <Card className='group cursor-pointer transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] rounded-2xl overflow-hidden bg-background border'>
+                    <Card className='group cursor-pointer transition duration-300 hover:shadow-2xl hover:scale-[1.03] rounded-2xl overflow-hidden border'>
                       <div className='p-4 relative'>
                         <CardHeader className='pb-2 space-y-1'>
-                          <CardTitle className='text-xl font-semibold line-clamp-2 group-hover:text-primary transition-colors'>
+                          <CardTitle className='text-lg sm:text-xl font-semibold line-clamp-2 group-hover:text-primary transition-colors'>
                             {course.title}
                           </CardTitle>
-                          <CardDescription className='line-clamp-2 text-muted-foreground'>
+                          <CardDescription className='line-clamp-2 text-muted-foreground text-sm'>
                             {course.description}
                           </CardDescription>
                         </CardHeader>
@@ -289,7 +331,7 @@ export function HistoryPage () {
                           </div>
 
                           {/* Stats */}
-                          <div className='grid grid-cols-2 gap-4 text-sm'>
+                          <div className='grid grid-cols-2 gap-3 text-xs sm:text-sm'>
                             <div>
                               <p className='text-muted-foreground'>Lessons</p>
                               <p className='font-medium'>
@@ -315,7 +357,7 @@ export function HistoryPage () {
                           </div>
 
                           {/* Grade and Time */}
-                          <div className='flex items-center justify-between text-sm'>
+                          <div className='flex items-center justify-between text-xs sm:text-sm'>
                             <div className='flex items-center gap-2 text-muted-foreground'>
                               <Clock className='h-4 w-4' />
                               <span>
@@ -358,50 +400,43 @@ export function HistoryPage () {
                     </Card>
                   </Link>
                 </motion.div>
-              ))}{' '}
+              ))}
             </motion.div>
           )}
         </div>
 
         {!isLoading && course2?.length === 0 && (
           <motion.div
-            className='text-center py-20'
+            className='text-center py-16 sm:py-20 px-4'
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
             <motion.div
-              className='text-center py-20'
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
+              className='inline-flex items-center justify-center p-4 bg-muted rounded-full shadow-lg mb-6'
             >
-              <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-                className='inline-flex items-center justify-center p-4 bg-muted rounded-full shadow-lg mb-6'
+              <BookOpen className='h-10 w-10 sm:h-12 sm:w-12 text-primary' />
+            </motion.div>
+
+            <h2 className='text-2xl sm:text-3xl font-extrabold tracking-tight mb-2'>
+              No Courses Yet
+            </h2>
+            <p className='text-muted-foreground mb-6 text-base sm:text-lg max-w-md mx-auto'>
+              Start your learning journey by creating your first course.
+            </p>
+
+            <Link href='/prompt'>
+              <Button
+                size='lg'
+                className='inline-flex gap-2 px-5 py-3 text-base font-medium bg-gradient-to-r from-primary to-secondary shadow-md hover:shadow-lg'
               >
-                <BookOpen className='h-12 w-12 text-primary' />
-              </motion.div>
-
-              <h2 className='text-3xl font-extrabold tracking-tight mb-2'>
-                No Courses Yet
-              </h2>
-              <p className='text-muted-foreground mb-6 text-base'>
-                Start your learning journey by creating your first course.
-              </p>
-
-              <Link href='/prompt'>
-                <Button
-                  size='lg'
-                  className='inline-flex gap-2 px-6 py-3 text-base font-medium bg-gradient-to-r from-primary to-secondary shadow-md hover:shadow-lg'
-                >
-                  <PlusCircle className='h-5 w-5' />
-                  Create Your First Course
-                </Button>
-              </Link>
-            </motion.div>{' '}
+                <PlusCircle className='h-5 w-5' />
+                Create Your First Course
+              </Button>
+            </Link>
           </motion.div>
         )}
       </div>

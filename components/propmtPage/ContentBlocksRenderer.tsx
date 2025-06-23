@@ -29,6 +29,8 @@ export function ContentBlocksRenderer({ contentBlocks }: { contentBlocks: any[] 
     return <p className="text-sm text-muted-foreground">Generating content...</p>
   }
 
+  console.log(contentBlocks)
+
   return (
     <div className="space-y-6">
       {contentBlocks

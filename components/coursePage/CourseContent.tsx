@@ -276,7 +276,8 @@ const CourseContent = ({
                       }
                     })}
                 </div>
-                <div className='flex justify-between mt-8 pt-6 border-t'>
+
+                <div className='flex flex-col sm:flex-row justify-between mt-8 pt-6 gap-3 border-t'>
                   <Button
                     variant='outline'
                     onClick={() => {
@@ -288,6 +289,7 @@ const CourseContent = ({
                       }
                     }}
                     disabled={selectedLesson?.order === 0}
+                    className='w-full sm:w-auto'
                   >
                     <ChevronLeft className='mr-2 h-4 w-4' />
                     Previous Lesson
@@ -298,6 +300,7 @@ const CourseContent = ({
                       setSelectedLesson(null)
                       setSelectedQuiz(selectedLesson?.id)
                     }}
+                    className='w-full sm:w-auto'
                   >
                     Give Quiz
                   </Button>
@@ -317,6 +320,7 @@ const CourseContent = ({
                     disabled={
                       selectedLesson?.order! + 1 === course.lessons.length
                     }
+                    className='w-full sm:w-auto'
                   >
                     Next Lesson
                     <ChevronRight className='ml-2 h-4 w-4' />

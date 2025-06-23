@@ -8,13 +8,18 @@ import { useStore } from '@/store/store'
 import { useAuth, UserButton } from '@clerk/nextjs'
 import axios from 'axios'
 import { motion } from 'framer-motion'
-import { BookOpen, History } from 'lucide-react'
+import { BookOpen, History, Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Card } from '../ui/card'
 import { Skeleton } from '../ui/skeleton'
 import CourseContent from './CourseContent'
 import Sidebar from './Sidebar'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '../ui/collapsible'
 
 interface CoursePageProps {
   courseId: string
@@ -38,6 +43,7 @@ export function CoursePage ({ courseId }: CoursePageProps) {
   const [courseCompleted, setCourseCompleted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const mainRef = useRef<HTMLDivElement>(null)
+  const [isOpen, setIsOpen] = useState(false)
 
   const { getToken } = useAuth()
   const { addCourse, user, setUser, updateLessonProgress } = useStore()
@@ -184,9 +190,7 @@ export function CoursePage ({ courseId }: CoursePageProps) {
 
   const handleLessonComplete = async (lessonId: string) => {
     const startTime = lessonStartTimeRef.current
-    const timeTaken = startTime
-      ? Math.floor((Date.now() - startTime))
-      : 0
+    const timeTaken = startTime ? Math.floor(Date.now() - startTime) : 0
 
     setCompletedLessons(prev => {
       if (prev.includes(lessonId)) return prev // Avoid duplicate
@@ -301,36 +305,136 @@ export function CoursePage ({ courseId }: CoursePageProps) {
   return (
     <div className='h-screen grid grid-rows-[auto_1fr] bg-background'>
       {/* Navbar */}
-      <nav className='h-16 border-b sticky top-0 z-50 bg-background'>
-        <nav className='h-16 border-b sticky top-0 z-50 bg-background'>
-          <div className='container mx-auto px-4'>
-            <div className='flex h-16 items-center justify-between'>
-              <Link href='/' className='flex items-center space-x-2'>
-                <BookOpen className='h-8 w-8 text-primary' />
-                <span className='text-2xl font-bold'>Tutorly</span>
+      <nav className='sticky top-0 z-50 bg-background/80 backdrop-blur border-b'>
+        <div className='container mx-auto px-4'>
+          <div className='flex h-16 items-center justify-between'>
+            {/* Logo */}
+            <Link href='/' className='flex items-center gap-2'>
+              <BookOpen className='h-6 w-6 text-primary' />
+              <span className='text-xl font-semibold tracking-tight'>
+                Tutorly
+              </span>
+            </Link>
+
+            {/* Desktop Menu */}
+            <div className='hidden md:flex items-center gap-2'>
+              <Link href='/history'>
+                <Button variant='outline' size='sm'>
+                  <History className='mr-2 h-4 w-4' />
+                  All Courses
+                </Button>
               </Link>
-              <div className='flex items-center space-x-4'>
-                <Link href='/history'>
-                  <Button variant='outline' size='sm'>
-                    <History className='mr-2 h-4 w-4' />
-                    All Courses
-                  </Button>
-                </Link>
+              <ThemeToggle />
+              <UserButton />
+            </div>
+
+            {/* Mobile Menu Toggle */}
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className='md:hidden inline-flex items-center p-2'
+              aria-label='Toggle Menu'
+            >
+              {isOpen ? (
+                <X className='h-6 w-6' />
+              ) : (
+                <Menu className='h-6 w-6' />
+              )}
+            </button>
+          </div>
+
+          {/* Mobile Menu */}
+          {isOpen && (
+            <div className='md:hidden mt-2 pb-4 space-y-2'>
+              <Link href='/history' className='block'>
+                <Button variant='outline' className='w-full justify-start'>
+                  <History className='mr-2 h-4 w-4' />
+                  All Courses
+                </Button>
+              </Link>
+              <div className='flex gap-2'>
                 <ThemeToggle />
                 <UserButton />
               </div>
             </div>
-          </div>
-        </nav>
+          )}
+        </div>
       </nav>
 
       {/* Main content */}
-      <div className='grid grid-cols-1 lg:grid-cols-4 h-full'>
+      <div className='grid grid-cols-1 lg:grid-cols-[300px_1fr] h-full'>
+        {/* Mobile Collapsible Sidebar */}
+        <div className='lg:hidden border-b p-2'>
+          <Collapsible>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant='outline'
+                className='w-full flex items-center justify-center gap-2'
+              >
+                <Menu className='h-4 w-4' />
+                Courses
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className='mt-2 max-h-[60vh] overflow-y-auto border rounded-md p-2'>
+              {isLoading ? (
+                <motion.div
+                  className='lg:col-span-1 p-4'
+                  variants={cardVariants}
+                  initial='hidden'
+                  animate='visible'
+                >
+                  <Card className='sticky top-6 p-4 space-y-5'>
+                    <Skeleton className='h-6 w-1/2' /> {/* Title */}
+                    <Skeleton className='h-4 w-full' /> {/* Description */}
+                    <Skeleton className='h-2 w-full' /> {/* Progress Label */}
+                    <Skeleton className='h-2 w-full rounded bg-muted-foreground/20' />{' '}
+                    {/* Progress Bar */}
+                    <div className='space-y-2 mt-4'>
+                      <Skeleton className='h-10 w-full rounded-lg' />{' '}
+                      {/* Lessons */}
+                      <Skeleton className='h-10 w-full rounded-lg' />{' '}
+                      {/* Quizzes */}
+                      <Skeleton className='h-10 w-full rounded-lg' />{' '}
+                      {/* Summary */}
+                      <Skeleton className='h-10 w-full rounded-lg' />{' '}
+                      {/* Key Points */}
+                      <Skeleton className='h-10 w-full rounded-lg' />{' '}
+                      {/* Analytics */}
+                    </div>
+                  </Card>
+                </motion.div>
+              ) : (
+                <Sidebar
+                  setCourseCompleted={setCourseCompleted}
+                  course={course!}
+                  progress={progress}
+                  quizzesOpen={quizzesOpen}
+                  courseCompleted={courseCompleted}
+                  lessonsOpen={lessonsOpen}
+                  completedLessons={completedLessons}
+                  completedQuizzes={completedQuizzes}
+                  selectedLesson={selectedLesson}
+                  selectedQuiz={selectedQuiz}
+                  showAnalytics={showAnalytics}
+                  showSummary={showSummary}
+                  showKeyPoints={showKeyPoints}
+                  setLessonsOpen={setLessonsOpen}
+                  setQuizzesOpen={setQuizzesOpen}
+                  setSelectedLesson={setSelectedLesson}
+                  setSelectedQuiz={setSelectedQuiz}
+                  setShowAnalytics={setShowAnalytics}
+                  setShowSummary={setShowSummary}
+                  setShowKeyPoints={setShowKeyPoints}
+                />
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+
         {/* SIDEBAR - Sticky */}
         <aside
-          className='lg:col-span-1 sticky top-16 h-[calc(100vh-64px)] overflow-y-auto border-r p-4 scrollbar-thin 
-  scrollbar-thumb-gray-400 scrollbar-track-gray-200
-  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
+          className='hidden lg:block sticky top-16 h-[calc(100vh-64px)] overflow-y-auto border-r p-4 
+          scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200
+          dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
         >
           {isLoading ? (
             <motion.div
@@ -388,9 +492,9 @@ export function CoursePage ({ courseId }: CoursePageProps) {
         {/* MAIN CONTENT - Scrollable */}
         <main
           ref={mainRef}
-          className='lg:col-span-3 overflow-y-auto h-[calc(100vh-64px)] p-6 border-r scrollbar-thin 
-  scrollbar-thumb-gray-400 scrollbar-track-gray-200
-  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
+          className='overflow-y-auto h-[calc(100vh-64px)] p-6 scrollbar-thin 
+          scrollbar-thumb-gray-400 scrollbar-track-gray-200
+          dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
         >
           {isLoading ? (
             <div className='flex flex-col items-center justify-center h-full text-center'>
