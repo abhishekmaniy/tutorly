@@ -873,12 +873,11 @@ export function PromptPage () {
               Generating Your Course
             </motion.h1>
 
-            {/* Subtext */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className='text-muted-foreground mb-6'
+              className='text-muted-foreground mb-6 px-4 text-center sm:px-0 sm:text-base text-sm'
             >
               Please wait while we create your personalized course...
             </motion.p>
