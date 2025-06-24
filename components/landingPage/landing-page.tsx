@@ -233,6 +233,21 @@ export function LandingPage () {
       <Navbar />
       {/* Hero Section */}
       <BackgroundLines className='relative overflow-hidden py-20 lg:py-32'>
+        <div className='absolute right-6 top-6 z-30'>
+          <a
+            href='https://www.producthunt.com/products/tutorly-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-tutorly&#0045;2'
+            target='_blank'
+            rel='noopener noreferrer'
+          >
+            <img
+              src='https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=983344&theme=neutral&t=1750790431832'
+              alt='Tutorly - AI&#0045;powered&#0032;course&#0032;creation&#0044;&#0032;simplified&#0046; | Product Hunt'
+              style={{ width: '250px', height: '54px' }}
+              width='250'
+              height='54'
+            />
+          </a>
+        </div>
         <div className='absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-primary/5' />
 
         <div className='container relative mx-auto px-4'>
