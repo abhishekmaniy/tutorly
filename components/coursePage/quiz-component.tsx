@@ -158,9 +158,7 @@ export function QuizComponent ({
   const handleSubmit = async () => {
     setSubmitting(true)
 
-    const timeTaken = startTime
-      ? Math.floor((Date.now() - startTime))
-      : 0
+    const timeTaken = startTime ? Math.floor(Date.now() - startTime) : 0
 
     setTimeSpent(timeTaken)
 
@@ -268,217 +266,230 @@ export function QuizComponent ({
 
   if (!hasStarted) {
     return countdown !== null ? (
-      <div className='flex items-center justify-center h-96 text-6xl font-bold animate-pulse'>
+      <div className='flex items-center justify-center min-h-[60vh] text-6xl font-bold animate-pulse'>
         {countdown === 0 ? 'GO!' : countdown}
       </div>
     ) : (
-      <motion.div
-        className='space-y-6 p-6 border rounded-lg bg-card'
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <h2 className='text-3xl font-bold text-primary'>
-          📘 Quiz Instructions
-        </h2>
-
-        <ul className='space-y-4'>
-          {instructions.map((item, index) => (
-            <motion.li
-              key={index}
-              className='flex items-start space-x-3 text-muted-foreground'
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 * index }}
-            >
-              <span>{item.icon}</span>
-              <span>{item.text}</span>
-            </motion.li>
-          ))}
-        </ul>
-
+      <div className='min-h-screen flex items-center justify-center px-2 bg-background'>
         <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.5 }}
+          className='w-full max-w-sm bg-card border rounded-2xl shadow-lg p-6 space-y-6'
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
         >
-          <Button
-            onClick={startQuiz}
-            size='lg'
-            className='gap-2 text-lg px-6 py-3'
+          <h2 className='text-2xl md:text-3xl font-bold text-primary flex items-center gap-2'>
+            <span role='img' aria-label='book'>
+              📘
+            </span>{' '}
+            Quiz Instructions
+          </h2>
+
+          <ul className='space-y-4 text-base'>
+            {instructions.map((item, index) => (
+              <motion.li
+                key={index}
+                className='flex items-start gap-3 text-muted-foreground'
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 * index }}
+              >
+                <span>{item.icon}</span>
+                <span>{item.text}</span>
+              </motion.li>
+            ))}
+          </ul>
+
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.5 }}
           >
-            <Play className='h-5 w-5' />
-            Start Quiz
-          </Button>
+            <Button
+              onClick={startQuiz}
+              size='lg'
+              className='gap-2 text-lg px-6 py-3 w-full'
+            >
+              <Play className='h-5 w-5' />
+              Start Quiz
+            </Button>
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
     )
   }
 
   return (
-    <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
-        <div>
-          <h2 className='text-2xl font-bold'>{quiz?.title}</h2>
-          <p className='text-muted-foreground'>
-            Question {currentQuestion} of {quiz?.questions?.length}
-          </p>
+    <div className='min-h-screen flex flex-col items-center justify-center px-1 bg-background'>
+      <div className='w-full'>
+        <div className='mb-6 px-2'>
+          <h2 className='text-2xl font-bold break-words'>{quiz?.title}</h2>
+          <div className='flex items-center justify-between mt-1'>
+            <p className='text-muted-foreground text-sm'>
+              Question {currentQuestion} of {quiz?.questions?.length}
+            </p>
+            <Badge variant='secondary'>{currentQ?.marks} marks</Badge>
+          </div>
+          <Progress value={progress} className='h-2 mt-4' />
         </div>
-        <div className='text-right'>
-          <Badge variant='secondary'>{currentQ?.marks} marks</Badge>
-        </div>
-      </div>
 
-      <Progress value={progress} className='h-2' />
+        <Card className='mb-6 w-full rounded-lg border px-2'>
+          <CardHeader className='pt-3 pb-1 px-0'>
+            <CardTitle className='text-lg no-select break-words'>
+              {currentQ?.question}
+            </CardTitle>
+            {currentQ?.type === 'DESCRIPTIVE' && currentQ.rubric && (
+              <CardDescription>
+                <div className='mt-2'>
+                  <p className='font-medium no-select'>Marking Rubric:</p>
+                  <ul className='list-disc list-inside no-select text-sm mt-1'>
+                    {currentQ.rubric.map((criteria, index) => (
+                      <li key={index}>{criteria}</li>
+                    ))}
+                  </ul>
+                </div>
+              </CardDescription>
+            )}
+          </CardHeader>
+          <CardContent className='pb-3 pt-1 px-0'>
+            {currentQ?.type === 'MCQ' && (
+              <RadioGroup
+                value={answers[currentQ.id]?.toString()}
+                onValueChange={value =>
+                  handleAnswerChange(currentQ.id, Number(value))
+                }
+                className='space-y-3'
+              >
+                {currentQ.options.map((option: string, index: number) => (
+                  <div key={index} className='flex items-center space-x-2'>
+                    <RadioGroupItem
+                      value={index.toString()}
+                      id={`q${currentQ.id}-${index}`}
+                    />
+                    <Label
+                      htmlFor={`q${currentQ.id}-${index}`}
+                      className='flex-1 cursor-pointer no-select'
+                    >
+                      {option}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className='text-lg no-select'>{currentQ?.question}</CardTitle>
-          {currentQ?.type === 'DESCRIPTIVE' && currentQ.rubric && (
-            <CardDescription>
-              <div className='mt-2'>
-                <p className='font-medium no-select'>Marking Rubric:</p>
-                <ul className='list-disc list-inside no-select text-sm mt-1'>
-                  {currentQ.rubric.map((criteria, index) => (
-                    <li key={index}>{criteria}</li>
-                  ))}
-                </ul>
-              </div>
-            </CardDescription>
-          )}
-        </CardHeader>
-        <CardContent>
-          {currentQ?.type === 'MCQ' && (
-            <RadioGroup
-              value={answers[currentQ.id]?.toString()}
-              onValueChange={value =>
-                handleAnswerChange(currentQ.id, Number(value))
-              }
-            >
-              {currentQ.options.map((option: string, index: number) => (
-                <div key={index} className='flex no-select items-center space-x-2'>
-                  <RadioGroupItem
-                    value={index.toString()}
-                    id={`q${currentQ.id}-${index}`}
-                  />
+            {currentQ?.type === 'TRUE_FALSE' && (
+              <RadioGroup
+                value={answers[currentQ.id]?.toString()}
+                onValueChange={value =>
+                  handleAnswerChange(currentQ.id, value === 'true')
+                }
+                className='space-y-3'
+              >
+                <div className='flex items-center space-x-2'>
+                  <RadioGroupItem value='true' id={`q${currentQ.id}-true`} />
                   <Label
-                    htmlFor={`q${currentQ.id}-${index}`}
-                    className='flex-1 no-select cursor-pointer'
+                    htmlFor={`q${currentQ.id}-true`}
+                    className='cursor-pointer no-select'
                   >
-                    {option}
+                    True
                   </Label>
                 </div>
-              ))}
-            </RadioGroup>
-          )}
-
-          {currentQ?.type === 'TRUE_FALSE' && (
-            <RadioGroup
-              value={answers[currentQ.id]?.toString()}
-              onValueChange={value =>
-                handleAnswerChange(currentQ.id, value === 'true')
-              }
-            >
-              <div className='flex no-select items-center space-x-2'>
-                <RadioGroupItem value='true' id={`q${currentQ.id}-true`} />
-                <Label
-                  htmlFor={`q${currentQ.id}-true`}
-                  className='cursor-pointer no-select'
-                >
-                  True
-                </Label>
-              </div>
-              <div className='flex no-select items-center space-x-2'>
-                <RadioGroupItem value='false' id={`q${currentQ.id}-false`} />
-                <Label
-                  htmlFor={`q${currentQ.id}-false`}
-                  className='cursor-pointer no-select'
-                >
-                  False
-                </Label>
-              </div>
-            </RadioGroup>
-          )}
-
-          {currentQ?.type === 'MULTIPLE_SELECT' && (
-            <div className='space-y-3'>
-              <p className='text-sm text-muted-foreground no-select'>
-                Select all correct answers:
-              </p>
-              {currentQ.options.map((option: string, index: number) => (
-                <div key={index} className='flex no-select items-center space-x-2'>
-                  <Checkbox
-                    id={`q${currentQ.id}-${index}`}
-                    checked={answers[currentQ.id]?.includes(index) || false}
-                    onCheckedChange={checked => {
-                      const currentAnswers = answers[currentQ.id] || []
-                      if (checked) {
-                        handleAnswerChange(currentQ.id, [
-                          ...currentAnswers,
-                          index
-                        ])
-                      } else {
-                        handleAnswerChange(
-                          currentQ.id,
-                          currentAnswers.filter((a: number) => a !== index)
-                        )
-                      }
-                    }}
-                  />
+                <div className='flex items-center space-x-2'>
+                  <RadioGroupItem value='false' id={`q${currentQ.id}-false`} />
                   <Label
-                    htmlFor={`q${currentQ.id}-${index}`}
-                    className='flex-1 cursor-pointer no-select'
+                    htmlFor={`q${currentQ.id}-false`}
+                    className='cursor-pointer no-select'
                   >
-                    {option}
+                    False
                   </Label>
                 </div>
-              ))}
-            </div>
-          )}
+              </RadioGroup>
+            )}
 
-          {currentQ?.type === 'DESCRIPTIVE' && (
-            <div className='space-y-3 '>
-              <Textarea
-                placeholder='Write your detailed answer here...'
-                value={answers[currentQ.id] || ''}
-                onChange={e => handleAnswerChange(currentQ.id, e.target.value)}
-                className='min-h-[150px]'
-              />
-              <p className='text-xs text-muted-foreground'>
-                Minimum 50 characters required. Current:{' '}
-                {(answers[currentQ.id] || '').length}
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            {currentQ?.type === 'MULTIPLE_SELECT' && (
+              <div className='space-y-3'>
+                <p className='text-sm text-muted-foreground no-select'>
+                  Select all correct answers:
+                </p>
+                {currentQ.options.map((option: string, index: number) => (
+                  <div key={index} className='flex items-center space-x-2'>
+                    <Checkbox
+                      id={`q${currentQ.id}-${index}`}
+                      checked={answers[currentQ.id]?.includes(index) || false}
+                      onCheckedChange={checked => {
+                        const currentAnswers = answers[currentQ.id] || []
+                        if (checked) {
+                          handleAnswerChange(currentQ.id, [
+                            ...currentAnswers,
+                            index
+                          ])
+                        } else {
+                          handleAnswerChange(
+                            currentQ.id,
+                            currentAnswers.filter((a: number) => a !== index)
+                          )
+                        }
+                      }}
+                    />
+                    <Label
+                      htmlFor={`q${currentQ.id}-${index}`}
+                      className='flex-1 cursor-pointer no-select'
+                    >
+                      {option}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            )}
 
-      <div className='flex justify-between'>
-        <Button
-          variant='outline'
-          onClick={prevQuestion}
-          disabled={currentQuestion === 1}
-        >
-          <ChevronLeft className='mr-2 h-4 w-4' />
-          Previous
-        </Button>
+            {currentQ?.type === 'DESCRIPTIVE' && (
+              <div className='space-y-3'>
+                <Textarea
+                  placeholder='Write your detailed answer here...'
+                  value={answers[currentQ.id] || ''}
+                  onChange={e =>
+                    handleAnswerChange(currentQ.id, e.target.value)
+                  }
+                  className='min-h-[150px]'
+                />
+                <p className='text-xs text-muted-foreground'>
+                  Minimum 50 characters required. Current:{' '}
+                  {(answers[currentQ.id] || '').length}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {currentQuestion === quiz?.questions?.length ? (
+        <div className='flex justify-between gap-2 px-2'>
           <Button
-            onClick={handleSubmit}
-            disabled={!answers.hasOwnProperty(currentQ?.id || '')}
+            variant='outline'
+            onClick={prevQuestion}
+            disabled={currentQuestion === 1}
+            className='w-1/2'
           >
-            Submit Quiz
+            <ChevronLeft className='mr-2 h-4 w-4' />
+            Previous
           </Button>
-        ) : (
-          <Button
-            onClick={nextQuestion}
-            disabled={!answers.hasOwnProperty(currentQ?.id || '')}
-          >
-            Next
-            <ChevronRight className='ml-2 h-4 w-4' />
-          </Button>
-        )}
+
+          {currentQuestion === quiz?.questions?.length ? (
+            <Button
+              onClick={handleSubmit}
+              disabled={!answers.hasOwnProperty(currentQ?.id || '')}
+              className='w-1/2'
+            >
+              Submit Quiz
+            </Button>
+          ) : (
+            <Button
+              onClick={nextQuestion}
+              disabled={!answers.hasOwnProperty(currentQ?.id || '')}
+              className='w-1/2'
+            >
+              Next
+              <ChevronRight className='ml-2 h-4 w-4' />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -492,9 +492,9 @@ export function CoursePage ({ courseId }: CoursePageProps) {
         {/* MAIN CONTENT - Scrollable */}
         <main
           ref={mainRef}
-          className='overflow-y-auto h-[calc(100vh-64px)] p-6 scrollbar-thin 
-          scrollbar-thumb-gray-400 scrollbar-track-gray-200
-          dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
+          className='p-0 sm:p-6 overflow-y-auto h-[calc(100vh-64px)] scrollbar-thin 
+             scrollbar-thumb-gray-400 scrollbar-track-gray-200
+             dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
         >
           {isLoading ? (
             <div className='flex flex-col items-center justify-center h-full text-center'>

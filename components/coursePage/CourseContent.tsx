@@ -106,10 +106,10 @@ const CourseContent = ({
   return (
     <div className='lg:col-span-3'>
       <Card className='h-full flex flex-col'>
-        <div className='p-8 flex-1 overflow-y-auto scrollbar-custom'>
-          <CardContent className='p-8 flex-1 overflow-y-auto scrollbar-custom'>
+        <div className='p-0 sm:p-8 flex-1 overflow-y-auto scrollbar-custom'>
+          <CardContent className='p-0 sm:p-8 flex-1 overflow-y-auto scrollbar-custom'>
             {selectedLesson?.order! >= 0 && (
-              <div className='prose prose-slate dark:prose-invert max-w-none'>
+              <div className='p-2 sm:p-0 prose prose-slate dark:prose-invert max-w-none'>
                 <div className='flex items-center justify-between mb-6'>
                   <div>
                     <motion.h1
@@ -151,7 +151,7 @@ const CourseContent = ({
                     </motion.div>
                   )}
                 </div>
-                <div className='space-y-6'>
+                <div className='space-y-6 w-full max-w-full overflow-x-hidden narrow-device-overflow-fix'>
                   {selectedLesson?.contentBlocks
                     .sort((a, b) => a.order - b.order)
                     .map(block => {
@@ -161,7 +161,7 @@ const CourseContent = ({
                           return (
                             <motion.div
                               key={block.id}
-                              className='prose dark:prose-invert max-w-none'
+                              className='prose dark:prose-invert w-full max-w-full overflow-x-hidden narrow-device-overflow-fix'
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{
@@ -186,7 +186,7 @@ const CourseContent = ({
                           return (
                             <motion.div
                               key={block.id}
-                              className='relative rounded-xl overflow-hidden text-sm'
+                              className='relative rounded-xl text-sm w-full max-w-full overflow-x-auto narrow-device-overflow-fix'
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{
@@ -194,7 +194,6 @@ const CourseContent = ({
                                 delay: block.order * 0.1
                               }}
                             >
-                              {/* Copy Button */}
                               <button
                                 onClick={() => {
                                   navigator.clipboard.writeText(
@@ -213,15 +212,18 @@ const CourseContent = ({
                               </button>
 
                               <SyntaxHighlighter
-                                language={'plaintext'}
+                                language='plaintext'
                                 style={vscDarkPlus}
                                 showLineNumbers
                                 wrapLongLines
                                 customStyle={{
                                   background: '#1e1e1e',
-                                  fontSize: '0.875rem',
+                                  fontSize: '0.85rem',
                                   padding: '1rem',
-                                  borderRadius: '0.75rem'
+                                  borderRadius: '0.75rem',
+                                  width: '100%',
+                                  overflowX: 'auto',
+                                  wordWrap: 'break-word'
                                 }}
                                 lineNumberStyle={{ color: '#6a9955' }}
                               >
@@ -236,13 +238,14 @@ const CourseContent = ({
                             !Array.isArray(block.graph.data)
                           )
                             return null
+
                           const xKey = block.graph.xKey || 'label'
                           const yKey = block.graph.yKey || 'value'
 
                           return (
                             <motion.div
                               key={block.id}
-                              className='w-full h-64'
+                              className='w-full h-64 overflow-x-auto narrow-device-overflow-fix'
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{
@@ -250,7 +253,7 @@ const CourseContent = ({
                                 delay: block.order * 0.1
                               }}
                             >
-                              <ResponsiveContainer>
+                              <ResponsiveContainer width='100%' height='100%'>
                                 <LineChart data={block.graph.data}>
                                   <CartesianGrid strokeDasharray='3 3' />
                                   <XAxis dataKey={xKey} />
@@ -259,7 +262,7 @@ const CourseContent = ({
                                   <Line
                                     type='monotone'
                                     dataKey={yKey}
-                                    stroke='#6366f1' // Indigo-500 Tailwind color
+                                    stroke='#6366f1'
                                     strokeWidth={2}
                                   />
                                 </LineChart>

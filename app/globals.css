@@ -112,3 +112,12 @@
   -webkit-user-select: none; /* Safari */
   -moz-user-select: none;    /* Firefox */
 }
+
+@media (max-aspect-ratio: 4/3) {
+  .narrow-device-overflow-fix {
+    overflow-x: hidden !important;
+    word-break: break-word !important;
+    font-size: 0.9rem;
+  }
+}
+
