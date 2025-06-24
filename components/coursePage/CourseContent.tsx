@@ -109,7 +109,7 @@ const CourseContent = ({
         <div className='p-0 sm:p-8 flex-1 overflow-y-auto scrollbar-custom'>
           <CardContent className='p-0 sm:p-8 flex-1 overflow-y-auto scrollbar-custom'>
             {selectedLesson?.order! >= 0 && (
-              <div className='p-2 sm:p-0 prose prose-slate dark:prose-invert max-w-none'>
+              <div className='p-3 sm:p-0 prose prose-slate dark:prose-invert max-w-none'>
                 <div className='flex items-center justify-between mb-6'>
                   <div>
                     <motion.h1

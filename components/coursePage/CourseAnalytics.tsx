@@ -94,9 +94,9 @@ const CourseAnalytics = ({
 
   return (
     <div
-      className=' overflow-y-auto scrollbar-thin 
+      className='p-3 sm:p-0 overflow-y-auto overflow-x-hidden scrollbar-thin 
   scrollbar-thumb-gray-400 scrollbar-track-gray-200
-  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900  pr-2"'
+  dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-900'
     >
       <div className='flex items-center mb-6'>
         <BarchartGraph className='mr-3 h-8 w-8 text-primary' />
@@ -161,7 +161,7 @@ const CourseAnalytics = ({
           <CardHeader>
             <CardTitle>Progress Overview</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className='w-full max-w-full overflow-x-auto'>
             <ResponsiveContainer width='100%' height={200}>
               <PieChart>
                 <Pie
@@ -197,7 +197,7 @@ const CourseAnalytics = ({
           <CardHeader>
             <CardTitle>Quiz Performance</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className='w-full max-w-full overflow-x-auto'>
             <ResponsiveContainer width='100%' height={200}>
               <BarChart data={quizBarChartData}>
                 <CartesianGrid strokeDasharray='3 3' />
@@ -215,7 +215,7 @@ const CourseAnalytics = ({
         <CardHeader>
           <CardTitle>Learning Progress Over Time</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className='w-full max-w-full overflow-x-auto'>
           <ResponsiveContainer width='100%' height={300}>
             <LineChart data={lineChartData}>
               <CartesianGrid strokeDasharray='3 3' />

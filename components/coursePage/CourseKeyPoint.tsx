@@ -28,7 +28,7 @@ const CourseKeyPoint = ({ course }: { course: Course }) => {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="space-y-8"
+      className="space-y-8 p-3 sm:p-0 "
     >
       {/* Heading */}
       <motion.div variants={itemVariants} className="flex items-center mb-2">
