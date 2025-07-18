@@ -410,4 +410,3 @@ Course Title: "${prompt}"
     )
   }
 }
-

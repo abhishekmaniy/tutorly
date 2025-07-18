@@ -42,7 +42,4 @@ Tutorly is your personal AI course builder. Just input a topic or learning goal,
 - **Frontend**:  Next.js / Tailwind CSS
 - **AI**: GEMINI API 
 - **Database**: PostgreSQL 
-- **Deployment**: Vercel 
-
-
-
+- **Deployment**: Vercel
