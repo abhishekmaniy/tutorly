@@ -1,5 +1,12 @@
-import { PromptPage } from "@/components/propmtPage/prompt-page"
+"use client"
 
-export default function Prompt() {
-  return <PromptPage />
+import { redirect } from "next/navigation"
+import { useEffect } from "react"
+
+export default function PromptPage() {
+  useEffect(() => {
+    redirect("/dashboard")
+  }, [])
+
+  return null
 }
