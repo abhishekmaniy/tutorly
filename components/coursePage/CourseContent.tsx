@@ -18,6 +18,7 @@ import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { Card, CardContent } from '../ui/card'
 import { QuizComponent } from './quiz-component'
+import { Editor } from '@monaco-editor/react'
 
 import { motion } from 'framer-motion'
 import 'highlight.js/styles/github-dark.css'
@@ -85,6 +86,8 @@ const CourseContent = ({
   showSummary: boolean
 }) => {
   const [copied, setCopied] = useState(false)
+  const [code, setCode] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
 
   console.log(course)
 
@@ -106,320 +109,351 @@ const CourseContent = ({
   }
 
   return (
-    <div className='lg:col-span-3'>
-      <Card className='h-full flex flex-col'>
-        <div className='p-0 sm:p-8 flex-1 overflow-y-auto scrollbar-custom'>
-          <CardContent className='p-0 sm:p-8 flex-1 overflow-y-auto scrollbar-custom'>
-            {selectedLesson?.order! >= 0 && (
-              <div className='p-3 sm:p-0 prose prose-slate dark:prose-invert max-w-none'>
-                <div className='flex items-center justify-between mb-6'>
-                  <div>
-                    <motion.h1
-                      className='text-3xl font-bold mb-2'
-                      initial={{ opacity: 0, y: -20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.1 }}
-                    >
-                      {selectedLesson?.title}
-                    </motion.h1>
-                    <motion.div
-                      className='flex items-center space-x-4 text-sm text-muted-foreground'
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5, delay: 0.2 }}
-                    >
-                      <Badge variant='secondary'>
-                        Lesson {selectedLesson?.order! + 1}
-                      </Badge>
-                      <span className='flex items-center'>
-                        <Clock className='mr-1 h-4 w-4' />
-                        {
-                          course.lessons.find(l => l.id === selectedLesson?.id)
-                            ?.duration
-                        }
-                      </span>
-                    </motion.div>
+    <div className='main-content mx-auto w-full max-w-5xl px-4'>
+      <div className='lg:col-span-3'>
+        <Card className='h-full flex flex-col'>
+          <div className='p-0 sm:p-8 flex-1 overflow-y-auto scrollbar-custom'>
+            <CardContent className='p-0 sm:p-8 flex-1 overflow-y-auto scrollbar-custom'>
+              {selectedLesson?.order! >= 0 && (
+                <div className='p-3 sm:p-0 prose prose-slate dark:prose-invert max-w-none'>
+                  <div className='flex items-center justify-between mb-6'>
+                    <div>
+                      <motion.h1
+                        className='text-3xl font-bold mb-2'
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                      >
+                        {selectedLesson?.title}
+                      </motion.h1>
+                      <motion.div
+                        className='flex items-center space-x-4 text-sm text-muted-foreground'
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                      >
+                        <Badge variant='secondary'>
+                          Lesson {selectedLesson?.order! + 1}
+                        </Badge>
+                        <span className='flex items-center'>
+                          <Clock className='mr-1 h-4 w-4' />
+                          {
+                            course.lessons.find(
+                              l => l.id === selectedLesson?.id
+                            )?.duration
+                          }
+                        </span>
+                      </motion.div>
+                    </div>
+                    {completedLessons.includes(selectedLesson?.id!) && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5, delay: 0.3 }}
+                      >
+                        <Badge variant='default' className='bg-green-500'>
+                          <CheckCircle className='mr-1 h-4 w-4' />
+                          Completed
+                        </Badge>
+                      </motion.div>
+                    )}
                   </div>
-                  {completedLessons.includes(selectedLesson?.id!) && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.3 }}
-                    >
-                      <Badge variant='default' className='bg-green-500'>
-                        <CheckCircle className='mr-1 h-4 w-4' />
-                        Completed
-                      </Badge>
-                    </motion.div>
-                  )}
-                </div>
-                <div className='space-y-6'>
-                  {selectedLesson?.contentBlocks
-                    .sort((a, b) => a.order - b.order)
-                    .map(block => {
-                      switch (block.type) {
-                        case 'TEXT':
-                        case 'MATH':
-                          return (
-                            <motion.div
-                              key={block.id}
-                              className='prose dark:prose-invert max-w-none'
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{
-                                duration: 0.4,
-                                delay: block.order * 0.1
-                              }}
-                            >
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[
-                                  rehypeRaw,
-                                  rehypeSanitize,
-                                  rehypeMathjax
-                                ]}
-                              >
-                                {block.text || ''}
-                              </ReactMarkdown>
-                            </motion.div>
-                          )
-
-                        case 'CODE':
-                          return (
-                            <motion.div
-                              key={block.id}
-                              className='relative rounded-xl overflow-hidden text-sm'
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{
-                                duration: 0.4,
-                                delay: block.order * 0.1
-                              }}
-                            >
-                              {/* Copy Button */}
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(
-                                    block.code || ''
-                                  )
-                                  setCopied(true)
-                                  setTimeout(() => setCopied(false), 2000)
+                  <div className='space-y-6'>
+                    {selectedLesson?.contentBlocks
+                      .sort((a, b) => a.order - b.order)
+                      .map(block => {
+                        switch (block.type) {
+                          case 'TEXT':
+                          case 'MATH':
+                            return (
+                              <motion.div
+                                key={block.id}
+                                className='prose dark:prose-invert max-w-none'
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{
+                                  duration: 0.4,
+                                  delay: block.order * 0.1
                                 }}
-                                className='absolute top-2 right-2 z-10 rounded bg-primary px-2 py-1 text-xs text-white hover:bg-primary/80 transition'
                               >
-                                {copied ? (
-                                  <Check className='h-4 w-4' />
-                                ) : (
-                                  <Copy className='h-4 w-4' />
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  rehypePlugins={[
+                                    rehypeRaw,
+                                    rehypeSanitize,
+                                    rehypeMathjax
+                                  ]}
+                                >
+                                  {block.text || ''}
+                                </ReactMarkdown>
+                              </motion.div>
+                            )
+
+                          case 'CODE':
+                            return (
+                              <motion.div
+                                key={block.id}
+                                className='relative rounded-xl overflow-hidden text-sm'
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{
+                                  duration: 0.4,
+                                  delay: block.order * 0.1
+                                }}
+                              >
+                                {/* Edit Button */}
+                                <button
+                                  onClick={() => setIsEditing(true)}
+                                  className='absolute top-2 left-2 z-20 rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-500 transition'
+                                >
+                                  Edit
+                                </button>
+
+                                {/* Copy Button */}
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(
+                                      block.code || ''
+                                    )
+                                    setCopied(true)
+                                    setTimeout(() => setCopied(false), 2000)
+                                  }}
+                                  className='absolute top-2 right-2 z-20 rounded bg-primary px-2 py-1 text-xs text-white hover:bg-primary/80 transition'
+                                >
+                                  {copied ? (
+                                    <Check className='h-4 w-4' />
+                                  ) : (
+                                    <Copy className='h-4 w-4' />
+                                  )}
+                                </button>
+
+                                {/* Fullscreen Editor Modal */}
+                                {isEditing && (
+                                  <div className='fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col p-4'>
+                                    <div className='flex justify-between items-center mb-4'>
+                                      <h2 className='text-white text-lg font-semibold'>
+                                        Editing Code Block
+                                      </h2>
+                                      <button
+                                        onClick={() => setIsEditing(false)}
+                                        className='bg-red-600 text-white text-xs px-3 py-1 rounded hover:bg-red-500 transition'
+                                      >
+                                        Close
+                                      </button>
+                                    </div>
+                                    <Editor
+                                      height='80vh'
+                                      defaultLanguage='javascript'
+                                      theme='vs-dark'
+                                      value={code || block.code!}
+                                      onChange={value => setCode(value!)}
+                                    />
+                                  </div>
                                 )}
-                              </button>
 
-                              <SyntaxHighlighter
-                                language={'plaintext'}
-                                style={vscDarkPlus}
-                                showLineNumbers
-                                wrapLongLines
-                                customStyle={{
-                                  background: '#1e1e1e',
-                                  fontSize: '0.875rem',
-                                  padding: '1rem',
-                                  borderRadius: '0.75rem'
+                                {/* Static View */}
+                                <Editor
+                                  height='500px'
+                                  defaultLanguage='javascript'
+                                  theme='vs-dark'
+                                  value={block.code!}
+                                  onChange={value => setCode(value!)}
+                                />
+                              </motion.div>
+                            )
+
+                          case 'GRAPH':
+                            console.log('block', block)
+                            if (
+                              !block.graph?.data ||
+                              !Array.isArray(block.graph.data)
+                            )
+                              return null
+
+                            const xKey =
+                              block.graph.xKey?.toLowerCase() || 'label'
+                            const yKey =
+                              block.graph.yKey?.toLowerCase() || 'value'
+
+                            return (
+                              <motion.div
+                                key={block.id}
+                                className='w-full h-64'
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{
+                                  duration: 0.4,
+                                  delay: block.order * 0.1
                                 }}
-                                lineNumberStyle={{ color: '#6a9955' }}
                               >
-                                {block.code || ''}
-                              </SyntaxHighlighter>
-                            </motion.div>
-                          )
+                                <ResponsiveContainer width='100%' height='100%'>
+                                  <LineChart data={block.graph.data}>
+                                    <CartesianGrid strokeDasharray='3 3' />
+                                    <XAxis dataKey={xKey} />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Line
+                                      type='monotone'
+                                      dataKey={yKey}
+                                      stroke='#6366f1'
+                                      strokeWidth={2}
+                                    />
+                                  </LineChart>
+                                </ResponsiveContainer>
+                              </motion.div>
+                            )
 
-                        case 'GRAPH':
-                          console.log('block', block)
-                          if (
-                            !block.graph?.data ||
-                            !Array.isArray(block.graph.data)
-                          )
-                            return null
+                          default:
+                            return (
+                              <p
+                                key={block.id}
+                                className='text-muted-foreground'
+                              >
+                                Unknown block type: {block.type}
+                              </p>
+                            )
+                        }
+                      })}
+                  </div>
 
-                          const xKey =
-                            block.graph.xKey?.toLowerCase() || 'label'
-                          const yKey =
-                            block.graph.yKey?.toLowerCase() || 'value'
-
-                          return (
-                            <motion.div
-                              key={block.id}
-                              className='w-full h-64'
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{
-                                duration: 0.4,
-                                delay: block.order * 0.1
-                              }}
-                            >
-                              <ResponsiveContainer width='100%' height='100%'>
-                                <LineChart data={block.graph.data}>
-                                  <CartesianGrid strokeDasharray='3 3' />
-                                  <XAxis dataKey={xKey} />
-                                  <YAxis />
-                                  <Tooltip />
-                                  <Line
-                                    type='monotone'
-                                    dataKey={yKey}
-                                    stroke='#6366f1'
-                                    strokeWidth={2}
-                                  />
-                                </LineChart>
-                              </ResponsiveContainer>
-                            </motion.div>
+                  <div className='flex flex-col sm:flex-row justify-between mt-8 pt-6 gap-3 border-t'>
+                    <Button
+                      variant='outline'
+                      onClick={() => {
+                        if (selectedLesson && selectedLesson.order > 0) {
+                          const prevLesson = course.lessons.find(
+                            l => l.order === selectedLesson.order - 1
                           )
+                          if (prevLesson) setSelectedLesson(prevLesson)
+                        }
+                      }}
+                      disabled={selectedLesson?.order === 0}
+                      className='w-full sm:w-auto'
+                    >
+                      <ChevronLeft className='mr-2 h-4 w-4' />
+                      Previous Lesson
+                    </Button>
 
-                        default:
-                          return (
-                            <p key={block.id} className='text-muted-foreground'>
-                              Unknown block type: {block.type}
-                            </p>
+                    <Button
+                      onClick={() => {
+                        setSelectedLesson(null)
+                        setSelectedQuiz(selectedLesson?.id)
+                      }}
+                      className='w-full sm:w-auto'
+                    >
+                      Give Quiz
+                    </Button>
+
+                    <Button
+                      onClick={() => {
+                        if (
+                          selectedLesson &&
+                          selectedLesson.order < course.lessons.length
+                        ) {
+                          const nextLesson = course.lessons.find(
+                            l => l.order === selectedLesson.order + 1
                           )
+                          if (nextLesson) setSelectedLesson(nextLesson)
+                        }
+                      }}
+                      disabled={
+                        selectedLesson?.order! + 1 === course.lessons.length
                       }
-                    })}
+                      className='w-full sm:w-auto'
+                    >
+                      Next Lesson
+                      <ChevronRight className='ml-2 h-4 w-4' />
+                    </Button>
+                  </div>
                 </div>
+              )}
 
-                <div className='flex flex-col sm:flex-row justify-between mt-8 pt-6 gap-3 border-t'>
-                  <Button
-                    variant='outline'
-                    onClick={() => {
-                      if (selectedLesson && selectedLesson.order > 0) {
-                        const prevLesson = course.lessons.find(
-                          l => l.order === selectedLesson.order - 1
-                        )
-                        if (prevLesson) setSelectedLesson(prevLesson)
-                      }
-                    }}
-                    disabled={selectedLesson?.order === 0}
-                    className='w-full sm:w-auto'
-                  >
-                    <ChevronLeft className='mr-2 h-4 w-4' />
-                    Previous Lesson
-                  </Button>
+              {selectedQuiz && (
+                <QuizComponent
+                  handleStartLearning={handleStartLearning}
+                  setSelectedLesson={setSelectedLesson}
+                  setSelectedQuiz={setSelectedQuiz}
+                  setShowSummary={setShowSummary}
+                  course={course}
+                  lessonId={selectedQuiz}
+                  onComplete={() => handleQuizComplete(selectedQuiz)}
+                />
+              )}
 
-                  <Button
-                    onClick={() => {
-                      setSelectedLesson(null)
-                      setSelectedQuiz(selectedLesson?.id)
-                    }}
-                    className='w-full sm:w-auto'
-                  >
-                    Give Quiz
-                  </Button>
+              {showSummary && <CourseSummary course={course} />}
 
-                  <Button
-                    onClick={() => {
-                      if (
-                        selectedLesson &&
-                        selectedLesson.order < course.lessons.length
-                      ) {
-                        const nextLesson = course.lessons.find(
-                          l => l.order === selectedLesson.order + 1
-                        )
-                        if (nextLesson) setSelectedLesson(nextLesson)
-                      }
-                    }}
-                    disabled={
-                      selectedLesson?.order! + 1 === course.lessons.length
-                    }
-                    className='w-full sm:w-auto'
-                  >
-                    Next Lesson
-                    <ChevronRight className='ml-2 h-4 w-4' />
-                  </Button>
-                </div>
-              </div>
-            )}
+              {showKeyPoints && <CourseKeyPoint course={course} />}
 
-            {selectedQuiz && (
-              <QuizComponent
-                handleStartLearning={handleStartLearning}
-                setSelectedLesson={setSelectedLesson}
-                setSelectedQuiz={setSelectedQuiz}
-                setShowSummary={setShowSummary}
-                course={course}
-                lessonId={selectedQuiz}
-                onComplete={() => handleQuizComplete(selectedQuiz)}
-              />
-            )}
+              {showAnalytics && (
+                <CourseAnalytics
+                  analyticsData={analyticsData}
+                  completedLessons={completedLessons}
+                  completedQuizzes={completedQuizzes}
+                  course={course}
+                />
+              )}
 
-            {showSummary && <CourseSummary course={course} />}
+              {courseCompleted && (
+                <CourseComplete
+                  setCourseComplete={setCourseCompleted}
+                  analyticsData={analyticsData}
+                  setShowAnalytics={setShowAnalytics}
+                />
+              )}
 
-            {showKeyPoints && <CourseKeyPoint course={course} />}
-
-            {showAnalytics && (
-              <CourseAnalytics
-                analyticsData={analyticsData}
-                completedLessons={completedLessons}
-                completedQuizzes={completedQuizzes}
-                course={course}
-              />
-            )}
-
-            {courseCompleted && (
-              <CourseComplete
-                setCourseComplete={setCourseCompleted}
-                analyticsData={analyticsData}
-                setShowAnalytics={setShowAnalytics}
-              />
-            )}
-
-            {!selectedLesson &&
-              !selectedQuiz &&
-              !showSummary &&
-              !showKeyPoints &&
-              !showAnalytics &&
-              !courseCompleted && (
-                <motion.div
-                  className='text-center py-16 px-4'
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, ease: 'easeOut' }}
-                >
+              {!selectedLesson &&
+                !selectedQuiz &&
+                !showSummary &&
+                !showKeyPoints &&
+                !showAnalytics &&
+                !courseCompleted && (
                   <motion.div
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.8, ease: 'backOut' }}
+                    className='text-center py-16 px-4'
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
                   >
-                    <div className='relative inline-flex mb-6'>
-                      <div className='absolute inset-0 rounded-full bg-gradient-to-tr from-primary/30 to-primary/5 blur-xl'></div>
-                      <div className='relative p-4 rounded-full bg-primary/10'>
-                        <Rocket className='h-12 w-12 text-primary' />
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.8, ease: 'backOut' }}
+                    >
+                      <div className='relative inline-flex mb-6'>
+                        <div className='absolute inset-0 rounded-full bg-gradient-to-tr from-primary/30 to-primary/5 blur-xl'></div>
+                        <div className='relative p-4 rounded-full bg-primary/10'>
+                          <Rocket className='h-12 w-12 text-primary' />
+                        </div>
                       </div>
+                    </motion.div>
+
+                    <h2 className='text-3xl font-extrabold tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80'>
+                      🚀 Welcome to Your Course!
+                    </h2>
+
+                    <p className='text-muted-foreground text-lg max-w-xl mx-auto mb-8'>
+                      Select a lesson from the sidebar to begin your journey of
+                      learning, growth, and discovery.
+                    </p>
+
+                    <Button
+                      onClick={() => handleStartLearning()}
+                      size='lg'
+                      className='group'
+                    >
+                      Start First Lesson
+                      <ChevronRight className='ml-2 h-5 w-5 transition-transform group-hover:translate-x-1' />
+                    </Button>
+
+                    <div className='mt-6 text-sm text-muted-foreground flex justify-center gap-2'>
+                      <Sparkles className='h-4 w-4 text-primary' />
+                      <span>New skills unlocked with every lesson!</span>
                     </div>
                   </motion.div>
-
-                  <h2 className='text-3xl font-extrabold tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80'>
-                    🚀 Welcome to Your Course!
-                  </h2>
-
-                  <p className='text-muted-foreground text-lg max-w-xl mx-auto mb-8'>
-                    Select a lesson from the sidebar to begin your journey of
-                    learning, growth, and discovery.
-                  </p>
-
-                  <Button
-                    onClick={() => handleStartLearning()}
-                    size='lg'
-                    className='group'
-                  >
-                    Start First Lesson
-                    <ChevronRight className='ml-2 h-5 w-5 transition-transform group-hover:translate-x-1' />
-                  </Button>
-
-                  <div className='mt-6 text-sm text-muted-foreground flex justify-center gap-2'>
-                    <Sparkles className='h-4 w-4 text-primary' />
-                    <span>New skills unlocked with every lesson!</span>
-                  </div>
-                </motion.div>
-              )}
-          </CardContent>
-        </div>
-      </Card>
+                )}
+            </CardContent>
+          </div>
+        </Card>
+      </div>
     </div>
   )
 }

@@ -23,7 +23,7 @@ const containerVariants = {
   }
 }
 
-export function ExpandableKeyPointCard ({
+export function t ({
   keyPoints
 }: {
   keyPoints: KeyPoint[]

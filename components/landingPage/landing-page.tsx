@@ -33,6 +33,7 @@ import { cubicBezier, easeOut, motion, Variants } from 'framer-motion'
 import { BackgroundLines } from '../ui/background-lines'
 import { CardSpotlight } from '../ui/card-spotlight'
 import { cn } from '@/lib/utils'
+import { Pricing } from './Pricing'
 
 const containerVariants = {
   hidden: {},
@@ -81,7 +82,7 @@ const fadeInUp = {
   }
 }
 
-export function LandingPage () {
+export function LandingPage() {
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null)
   const router = useRouter()
   const { isSignedIn } = useAuth()
@@ -456,114 +457,8 @@ export function LandingPage () {
         </div>
       </section>
       {/* Pricing Section */}
-      <section id='pricing' className='py-20'>
-        <div className='container mx-auto px-4'>
-          <motion.div
-            className='mx-auto max-w-2xl text-center mb-16'
-            initial='hidden'
-            whileInView='visible'
-            viewport={{ once: true, amount: 0.2 }}
-            variants={fadeUp}
-            custom={1}
-          >
-            <h2 className='mb-4 text-3xl font-bold sm:text-4xl'>
-              Choose Your Learning Plan
-            </h2>
-            <p className='text-lg text-muted-foreground'>
-              Start free and upgrade as you grow. All plans include our core AI
-              features.
-            </p>
-          </motion.div>
-
-          <div className='grid gap-8 lg:grid-cols-3'>
-            {pricing.map((plan, index) => (
-              <motion.div
-                key={index}
-                initial='hidden'
-                whileInView='visible'
-                viewport={{ once: true, amount: 0.2 }}
-                variants={fadeUp}
-                custom={index + 2}
-              >
-                <Card
-                  className={`relative ${
-                    plan.popular ? 'border-primary shadow-lg scale-105' : ''
-                  }`}
-                >
-                  {/* ✅ Coming Soon badge for Team */}
-                  {plan.name === 'Team' && (
-                    <Badge className='absolute -top-3 left-1/2 -translate-x-1/2 bg-muted text-foreground'>
-                      Coming Soon
-                    </Badge>
-                  )}
-
-                  {/* ✅ Most Popular badge for Pro */}
-                  {plan.popular && (
-                    <Badge className='absolute -top-3 left-1/2 -translate-x-1/2'>
-                      Most Popular
-                    </Badge>
-                  )}
-
-                  <CardHeader className='text-center'>
-                    <CardTitle className='text-2xl'>{plan.name}</CardTitle>
-
-                    <div className='mt-4'>
-                      <span className='text-4xl font-bold'>{plan.price}</span>
-                      <span className='text-muted-foreground'>
-                        {plan.period}
-                      </span>
-                    </div>
-
-                    <CardDescription className='mt-2'>
-                      {plan.description}
-                    </CardDescription>
-                  </CardHeader>
-
-                  <CardContent>
-                    {/* ✅ Free for all users notice for Pro */}
-                    {plan.name === 'Pro' && (
-                      <motion.div
-                        className='mb-4 rounded-md p-2 text-center text-primary text-sm font-medium'
-                        initial={{ backgroundColor: 'rgba(59,130,246,0.1)' }} // primary/10
-                        animate={{
-                          backgroundColor: [
-                            'rgba(59,130,246,0.1)', // light
-                            'rgba(59,130,246,0.2)', // highlight
-                            'rgba(59,130,246,0.1)' // light
-                          ]
-                        }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        Free for all users for 15 days after launch
-                      </motion.div>
-                    )}
-
-                    <ul className='space-y-3'>
-                      {plan.features.map(
-                        (feature: string, featureIndex: number) => (
-                          <li key={featureIndex} className='flex items-center'>
-                            <CheckCircle className='mr-3 h-5 w-5 text-primary' />
-                            <span>{feature}</span>
-                          </li>
-                        )
-                      )}
-                    </ul>
-
-                    <Button
-                      className='mt-6 w-full'
-                      variant={plan.popular ? 'default' : 'outline'}
-                      disabled={plan.name === 'Team'} // ✅ Disable button for Coming Soon
-                    >
-                      {plan.name === 'Team' ? 'Coming Soon' : 'Get Started'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-      {/* Reviews Section */}
+      <Pricing />
+        {/* Reviews Section */}
       <section id='reviews' className='py-20 bg-muted/30'>
         <div className='container mx-auto px-4'>
           <motion.div
