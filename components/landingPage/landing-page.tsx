@@ -415,50 +415,30 @@ export function LandingPage() {
           </motion.div>
 
           <motion.div
-            className='mx-auto max-w-4xl'
-            initial='hidden'
-            whileInView='visible'
+            className="mx-auto max-w-4xl"
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true, amount: 0.3 }}
             variants={fadeUp}
             custom={2}
           >
-            <Card className='p-8'>
+            <Card className="p-8">
               <motion.div
-                className='aspect-video rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center'
+                className="aspect-video rounded-lg overflow-hidden"
                 variants={fadeUp}
                 custom={3}
               >
-                <div className='text-center'>
-                  <motion.div
-                    className='mx-auto mb-4 h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center'
-                    variants={fadeUp}
-                    custom={4}
-                  >
-                    <BookOpen className='h-8 w-8 text-primary' />
-                  </motion.div>
-                  <motion.h3
-                    className='text-xl font-semibold mb-2'
-                    variants={fadeUp}
-                    custom={5}
-                  >
-                    Platform Screenshots
-                  </motion.h3>
-                  <motion.p
-                    className='text-muted-foreground'
-                    variants={fadeUp}
-                    custom={6}
-                  >
-                    Screenshots will be added here to showcase the platform
-                  </motion.p>
-                </div>
+                <iframe width="100%" height="100%" src="https://www.youtube.com/embed/Lod_xejK0a0?si=eFkUI6GUN6FXgITL" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen className='w-full h-full' ></iframe>
+                
               </motion.div>
             </Card>
           </motion.div>
+
         </div>
       </section>
       {/* Pricing Section */}
       <Pricing />
-        {/* Reviews Section */}
+      {/* Reviews Section */}
       <section id='reviews' className='py-20 bg-muted/30'>
         <div className='container mx-auto px-4'>
           <motion.div
