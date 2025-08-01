@@ -491,16 +491,15 @@ export function PromptPage() {
       const token = await getToken()
       const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL}`
 
-      if (user?.plan === Plan.STARTER && user?.courses?.length >= 3) {
+      if (user?.plan === Plan.STARTER && user?.courses?.length! >= 3) {
         toast.error("You've reached your free tier limit. Upgrade to Pro to continue.", { id: "limit-reach" });
         setIsGenerating(false)
         return;
       }
 
-      if (user?.plan === Plan.PRO && new Date(user.planExpire!) < new Date()) {
+      if (user?.plan === Plan.PRO && new Date(user?.planExpire!) < new Date()) {
         toast.error("Your Pro plan has expired. Please renew to continue.", { id: "pro-expired" });
         setIsGenerating(false)
-
         return;
       }
 
