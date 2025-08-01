@@ -54,7 +54,7 @@ export function CoursePage ({ courseId }: CoursePageProps) {
   const lessonTimeSpent = lessons
     .map(lesson => lesson?.timeTaken || 0)
     .reduce((acc, curr) => acc + curr, 0)
-
+  
   const quizTimeSpent = lessons
     ?.map(lesson => lesson.quizz?.timeTaken || 0)
     .reduce((acc, curr) => acc + curr, 0)

@@ -15,11 +15,22 @@ datasource db {
 }
 
 model User {
-  id        String   @id
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  courses   Course[]
+  id                     String    @id
+  email                  String    @unique
+  name                   String?
+  createdAt              DateTime  @default(now())
+  plan                   Plan      @default(STARTER)
+  paymentId             String?
+  orderId               String?
+  signature              String?
+  planExpire          DateTime?
+  courses                Course[]
+}
+
+enum Plan {
+  STARTER
+  PRO
+  TEAM
 }
 
 model Course {
