@@ -3,6 +3,10 @@ export type User = {
   email: string
   name?: string | null
   createdAt: string
+  plan?: String
+  orderId?: String
+  signature?: String
+  planExpire?: Date
   courses: Course[]
 }
 
@@ -18,7 +22,6 @@ export type Course = {
   progress: number
   grade: Grade
   completedAt?: string | null
-
   summary?: Summary
   keyPoints: KeyPoint[]
   analytics?: Analytics

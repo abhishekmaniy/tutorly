@@ -42,6 +42,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from '../ui/collapsible'
+import { Plan } from '@/lib/generated/prisma'
+import toast from "react-hot-toast"
+
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 20 },
@@ -62,7 +65,7 @@ const cardVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
 }
 
-export function PromptPage () {
+export function PromptPage() {
   const [prompt, setPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -463,6 +466,8 @@ export function PromptPage () {
     return () => controller.abort()
   }, [userId])
 
+  console.log(user)
+
   const styles: ('Text-based' | 'Visual Diagrams' | 'Project-focused' | '')[] =
     ['Text-based', 'Visual Diagrams', 'Project-focused', '']
 
@@ -485,6 +490,20 @@ export function PromptPage () {
     try {
       const token = await getToken()
       const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL}`
+
+      if (user?.plan === Plan.STARTER && user?.courses?.length >= 3) {
+        toast.error("You've reached your free tier limit. Upgrade to Pro to continue.", { id: "limit-reach" });
+        setIsGenerating(false)
+        return;
+      }
+
+      if (user?.plan === Plan.PRO && new Date(user.planExpire!) < new Date()) {
+        toast.error("Your Pro plan has expired. Please renew to continue.", { id: "pro-expired" });
+        setIsGenerating(false)
+
+        return;
+      }
+
 
       socket = new WebSocket(wsUrl)
 
@@ -564,12 +583,12 @@ export function PromptPage () {
               lessons: prev.lessons.map(lesson =>
                 lesson.title === parsed.lessonTitle
                   ? {
-                      ...lesson,
-                      contentBlocks: [
-                        ...(lesson.contentBlocks || []),
-                        parsed.contentBlock
-                      ]
-                    }
+                    ...lesson,
+                    contentBlocks: [
+                      ...(lesson.contentBlocks || []),
+                      parsed.contentBlock
+                    ]
+                  }
                   : lesson
               ),
               currentStep: 'contentBlock'

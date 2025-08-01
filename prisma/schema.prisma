@@ -20,8 +20,10 @@ model User {
   name                   String?
   createdAt              DateTime  @default(now())
   plan                   Plan      @default(STARTER)
-  planExpiresAt          DateTime?
-  razorpaySubscriptionId String?
+  paymentId             String?
+  orderId               String?
+  signature              String?
+  planExpire          DateTime?
   courses                Course[]
 }
 
