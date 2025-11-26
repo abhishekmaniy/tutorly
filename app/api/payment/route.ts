@@ -6,9 +6,6 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET!
 })
 
-console.log(process.env.RAZORPAY_KEY_ID)
-console.log(process.env.RAZORPAY_KEY_SECRET)
-
 export async function POST(request: NextRequest) {
     try {
 

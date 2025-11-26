@@ -40,7 +40,7 @@ export const POST = async (req: NextRequest) => {
     const questions = quiz.questions
 
     const ai = new GoogleGenerativeAI(GEMINI_API_KEY)
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     let gainedMarks = 0
     const updatedQuestions = []
@@ -136,7 +136,7 @@ You are acting as an exam evaluator for descriptive answers. Follow these rules 
           isCompleted: true,
           gainedMarks,
           timeTaken,
-          completedAt:new Date()
+          completedAt: new Date()
         }
       }),
       ...updatedQuestions.map(q =>
